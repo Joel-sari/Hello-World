@@ -1,0 +1,20 @@
+<!-- home/templates/home/map.html -->
+{% extends 'home/base.html' %}
+<!---placeholder-->
+{% load static %}
+<!---placeholder-->
+{% block body_class %}mode-map{% endblock %}
+<!---placeholder-->
+{% block content %}
+<canvas id="bg"></canvas>
+
+<!-- Placeholder map UI — your teammates can fill this out -->
+<div id="map-ui">
+  <button id="logout-btn" onclick="window.location.href='{% url 'logout' %}'">
+    Logout
+  </button>
+  <!-- Future: buttons, sidebars, pins, etc. -->
+</div>
+{% endblock %} {% block scripts %}
+<script type="module" src="{% static 'home/js/main.js' %}"></script>
+{% endblock %}

@@ -1,0 +1,13 @@
+<!-- home/templates/home/base.html -->
+<!DOCTYPE html>
+<html lang="en">
+  {% load static %}
+  <head>
+    <meta charset="UTF-8" />
+    <title>Hello World</title>
+    <link rel="stylesheet" href="{% static 'home/css/style.css' %}" />
+  </head>
+  <body class="{% block body_class %}{% endblock %}">
+    {% block content %}{% endblock %} {% block scripts %}{% endblock %}
+  </body>
+</html>

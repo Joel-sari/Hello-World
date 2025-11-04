@@ -1,0 +1,41 @@
+<!-- home/templates/home/index.html -->
+{% extends 'home/base.html' %} {% load static %}
+<!--place holder-->
+{% block body_class%}mode-login{% endblock %}
+<!--place holder-->
+{% block content %}
+<!-- Canvas behind everything -->
+<canvas id="bg"></canvas>
+
+<!-- Login card -->
+<div id="login-container">
+  <h1>Hello, World</h1>
+
+  <form method="POST" action="{% url 'login' %}">
+    {% csrf_token %} {{ form.non_field_errors }}
+    <div class="field">{{ form.username }}</div>
+    <div class="field">{{ form.password }}</div>
+    <button type="submit">Log In</button>
+    <p class="small-link">
+      Don’t have an account?
+      <a href="{% url 'signup' %}">Create one</a>
+    </p>
+  </form>
+
+  <div class="messages">
+    {% for m in messages %}
+    <div class="msg {{ m.tags }}">{{ m }}</div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}
+<!--place holder-->
+
+{% block scripts %}
+<!-- Three.js modules -->
+<script
+  type="module"
+  src="{% static 'home/js/main.js' %}"
+  data-mode="login"
+></script>
+{% endblock %}
