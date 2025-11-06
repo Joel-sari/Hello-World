@@ -81,21 +81,21 @@ canvas#bg {
 ------------------------------ */
 #map-ui {
   position: absolute;
-  z-index: 10;
   top: 16px;
   left: 0;
+  right: 0; /* ensures full stretch */
   width: 100%;
   display: flex;
-  justify-content: space-between; /* Search left, logout right */
+  justify-content: space-between;
   align-items: center;
   padding: 0 20px;
-  pointer-events: none; /* Let globe clicks pass through */
+  box-sizing: border-box; /* prevents overflow from padding */
+  pointer-events: none;
 }
 
 #map-ui > * {
-  pointer-events: auto; /* Make buttons/inputs clickable */
+  pointer-events: auto;
 }
-
 /* ------------------------------
    Country Filter / Search Bar
 ------------------------------ */
@@ -143,6 +143,7 @@ canvas#bg {
   background: #111827;
   color: #fff;
   cursor: pointer;
+  white-space: nowrap; /* prevents wrapping that pushes it off screen */
 }
 #logout-btn:hover {
   background: #0f172a;
