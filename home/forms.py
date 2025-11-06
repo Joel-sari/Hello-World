@@ -2,6 +2,8 @@
 from django import forms
 from django.contrib.auth.forms import UserCreationForm
 from django.contrib.auth.models import User
+from .models import Pin
+
 
 class SignUpForm(UserCreationForm):
     email = forms.EmailField(required=True, widget=forms.EmailInput(attrs={
@@ -20,3 +22,8 @@ class SignUpForm(UserCreationForm):
         self.fields['password2'].widget.attrs.update({"placeholder": "Confirm Password"})
         for field in self.fields.values():
             field.widget.attrs.update({"class": "field"})
+
+class PinForm(forms.ModelForm):
+    class Meta:
+        model = Pin
+        fields = ["latitude", "longitude", "caption", "image"]
