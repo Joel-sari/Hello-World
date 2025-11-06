@@ -10,7 +10,6 @@
 // ===============================
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
-
 // --- MODE ---
 const MODE = document.body.classList.contains("mode-map") ? "map" : "login";
 
@@ -326,3 +325,65 @@ window.addEventListener("resize", () => {
   camera.updateProjectionMatrix();
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
+
+
+// ===============================
+// COUNTRY SEARCH FEATURE 
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+  const searchBtn = document.getElementById("search-btn");
+  const input = document.getElementById("country-input");
+
+  if (!searchBtn || !input) return; // not logged in, skip
+
+  searchBtn.addEventListener("click", async () => {
+    const country = input.value.trim();
+    if (!country) return alert("Please enter a country name.");
+
+    try {
+      const res = await fetch(`/api/search/?country=${encodeURIComponent(country)}`);
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err.error || "Search failed.");
+        return;
+      }
+
+      const data = await res.json();
+      console.log("Search results:", data);
+
+      // Move the globe camera to the returned center coordinates
+      const [lat, lon] = data.center;
+      moveCameraTo(lat, lon);
+
+      // Replace pins with the ones from the country
+      showPins(data.pins);
+    } catch (err) {
+      console.error("Error fetching country:", err);
+    }
+  });
+});
+
+function moveCameraTo(lat, lon) {
+  console.log(`Move camera to lat=${lat}, lon=${lon}`);
+
+  const target = latLonToVector3(lat, lon, EARTH_RADIUS * 2.5);
+  const startPos = camera.position.clone();
+  const start = performance.now();
+  const duration = 1200;
+
+  function animateMove(now) {
+    const t = Math.min(1, (now - start) / duration);
+    const k = t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
+    camera.position.lerpVectors(startPos, target, k);
+    camera.lookAt(earth.position);
+    if (t < 1) requestAnimationFrame(animateMove);
+  }
+  requestAnimationFrame(animateMove);
+}
+
+function showPins(pins) {
+  pinGroup.clear();
+  pins.forEach((p) => {
+    pinGroup.add(createPinMesh(p));
+  });
+}
