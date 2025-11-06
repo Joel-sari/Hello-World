@@ -1,11 +1,27 @@
 {% extends 'home/base.html' %}
 {% load static %}
+
+{% block body_class %}mode-map{% endblock %}
+
 {% block body_class %}mode-map{% endblock %}
 {% block content %}
 
 <canvas id="bg"></canvas>
 
 <div id="map-ui">
+  {% if user.is_authenticated %}
+    <!-- 🔍 Country Search Bar -->
+    <div id="search-container">
+      <input
+        type="text"
+        id="country-input"
+        placeholder="Enter a country..."
+      />
+      <button id="search-btn">Search</button>
+    </div>
+  {% endif %}
+
+  <!-- Logout button -->
   <button id="logout-btn" onclick="window.location.href='{% url 'logout' %}'">Logout</button>
 </div>
 
