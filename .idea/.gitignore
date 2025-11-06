@@ -1,8 +1,32 @@
-# Default ignored files
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.sqlite3
+
+# Virtual environment
+venv/
+.env
+
+# Django generated files
+/media/
+staticfiles/
+
+# Node / React
+node_modules/
+build/
+dist/
+
+# IDE (VSCode + PyCharm)
+.vscode/
+.idea/
+# PyCharm default ignored files
 /shelf/
 /workspace.xml
-# Editor-based HTTP Client requests
 /httpRequests/
-# Datasource local storage ignored files
 /dataSources/
 /dataSources.local.xml
+
+# OS
+.DS_Store
+Thumbs.db

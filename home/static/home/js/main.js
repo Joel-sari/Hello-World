@@ -138,6 +138,24 @@ function latLonToVector3(lat, lon, radius) {
   );
 }
 
+function focusCameraOn(lat, lon, ms = 1500) {
+  const target = latLonToVector3(lat, lon, EARTH_RADIUS * 1.5);
+  const start = camera.position.clone();
+  const startTime = performance.now();
+
+  // optional: ease in/out curve
+  const ease = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
+
+  function step(now) {
+    const t = Math.min(1, (now - startTime) / ms);
+    const k = ease(t);
+    camera.position.lerpVectors(start, target, k);
+    camera.lookAt(earth.position);
+    if (t < 1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
 const pinGeom = new THREE.SphereGeometry(EARTH_RADIUS * 0.01, 16, 16);
 function makePinMaterial() { return new THREE.MeshBasicMaterial({ color: 0xff6688 }); }
 
@@ -189,6 +207,14 @@ async function loadMyPins(){
     console.error("Failed to load pins:", err);
   }
 }
+
+window.addPinToGlobe = function (pin) {
+  const mesh = createPinMesh(pin);
+  pinGroup.add(mesh);
+
+  // Center the camera on the new pin
+  focusCameraOn(pin.lat, pin.lon);
+};
 
 // --- HOVER CHECK inside render loop ---
 function updatePinHover(){

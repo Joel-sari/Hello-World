@@ -1,20 +1,81 @@
-<!-- home/templates/home/map.html -->
 {% extends 'home/base.html' %}
-<!---placeholder-->
 {% load static %}
-<!---placeholder-->
 {% block body_class %}mode-map{% endblock %}
-<!---placeholder-->
 {% block content %}
+
 <canvas id="bg"></canvas>
 
-<!-- Placeholder map UI — your teammates can fill this out -->
 <div id="map-ui">
-  <button id="logout-btn" onclick="window.location.href='{% url 'logout' %}'">
-    Logout
-  </button>
-  <!-- Future: buttons, sidebars, pins, etc. -->
+  <button id="logout-btn" onclick="window.location.href='{% url 'logout' %}'">Logout</button>
 </div>
-{% endblock %} {% block scripts %}
+
+{% if user.is_authenticated %}
+<button id="addPinBtn">＋ Add Pin</button>
+{% endif %}
+
+<div id="pinModal" class="modal hidden">
+  <div class="modal-content">
+    <form id="pinForm" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label>Latitude</label>
+      <input type="number" name="latitude" step="any" required>
+      <label>Longitude</label>
+      <input type="number" name="longitude" step="any" required>
+      <label>Caption</label>
+      <input type="text" name="caption" maxlength="280">
+      <label>Image</label>
+      <input type="file" name="image" accept="image/*">
+      <div class="modal-buttons">
+        <button type="submit">Save</button>
+        <button type="button" id="closeModal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<style>
+.modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
+  justify-content:center; align-items:center; }
+.modal.show { display:flex; }
+.modal-content { background:white; padding:20px; border-radius:10px; width:300px; }
+.modal-buttons { display:flex; justify-content:flex-end; gap:8px; margin-top:12px; }
+#addPinBtn { position:absolute; top:70px; right:20px; background:#0077ff; color:white;
+  border:none; border-radius:6px; padding:8px 14px; cursor:pointer; }
+</style>
+
+{% endblock %}
+
+{% block scripts %}
 <script type="module" src="{% static 'home/js/main.js' %}"></script>
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const modal = document.getElementById("pinModal");
+  const addBtn = document.getElementById("addPinBtn");
+  const closeBtn = document.getElementById("closeModal");
+  const form = document.getElementById("pinForm");
+
+  if (addBtn) addBtn.onclick = () => modal.classList.add("show");
+  if (closeBtn) closeBtn.onclick = () => modal.classList.remove("show");
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const formData = new FormData(form);
+
+    const res = await fetch("{% url 'add_pin' %}", {
+      method: "POST",
+      headers: { "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value },
+      body: formData,
+    });
+
+    if (res.ok) {
+      const newPin = await res.json();
+      modal.classList.remove("show");
+      form.reset();
+      if (window.addPinToGlobe) window.addPinToGlobe(newPin);
+    } else {
+      alert("Failed to add pin");
+    }
+  });
+});
+</script>
 {% endblock %}
