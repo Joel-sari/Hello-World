@@ -5,6 +5,9 @@ from django.shortcuts import redirect, render
 from django.contrib import messages
 from django import forms
 from .forms import SignUpForm
+from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
+from .models import Pin
 
 
 class LoginForm(forms.Form):
@@ -64,3 +67,20 @@ def logout_view(request):
 def map_view(request):
     # Full globe view (camera reveal happens on load)
     return render(request, "home/map.html")
+
+@login_required
+def my_pins(request):
+    pins = Pin.objects.filter(user=request.user).values(
+        "id", "latitude", "longitude", "caption", "image"
+    )
+    # Convert to list and expand image URL if present
+    data = []
+    for p in pins:
+        data.append({
+            "id": p["id"],
+            "lat": p["latitude"],
+            "lon": p["longitude"],
+            "caption": p["caption"] or "",
+            "imageUrl": request.build_absolute_uri(p["image"]) if p["image"] else None,
+        })
+    return JsonResponse({"pins": data})
