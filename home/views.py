@@ -7,6 +7,8 @@ from django import forms
 from .forms import SignUpForm
 from django.http import JsonResponse
 from .models import Pin
+from .forms import PinForm
+
 
 class LoginForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs={"placeholder": "Username"}))
@@ -182,3 +184,20 @@ def search_by_country(request):
         "center": _bounds_to_center(bounds),
         "pins": pins,
     })
+@login_required
+def add_pin(request):
+    if request.method == "POST":
+        form = PinForm(request.POST, request.FILES)
+        if form.is_valid():
+            pin = form.save(commit=False)
+            pin.user = request.user
+            pin.save()
+            return JsonResponse({
+                "id": pin.id,
+                "lat": pin.latitude,
+                "lon": pin.longitude,
+                "caption": pin.caption,
+                "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+            })
+        return JsonResponse({"errors": form.errors}, status=400)
+    return JsonResponse({"error": "POST required"}, status=405)
