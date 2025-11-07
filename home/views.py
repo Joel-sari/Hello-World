@@ -2,6 +2,7 @@
 from django.contrib.auth import authenticate, login, logout
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import redirect, render
+from django.shortcuts import get_object_or_404
 from django.contrib import messages
 from django import forms
 from .forms import SignUpForm
@@ -201,3 +202,30 @@ def add_pin(request):
             })
         return JsonResponse({"errors": form.errors}, status=400)
     return JsonResponse({"error": "POST required"}, status=405)
+
+@login_required
+def edit_pin(request, pin_id):
+    """
+    POST /api/edit-pin/<id>/
+    Allows the logged-in user to edit their own pin’s caption or image.
+    Body: multipart/form-data with (caption?, image?)
+    """
+    pin = get_object_or_404(Pin, id=pin_id, user=request.user)
+
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    # Important: instance=pin updates instead of creating
+    form = PinForm(request.POST, request.FILES, instance=pin)
+    if form.is_valid():
+        form.save()
+        return JsonResponse({
+            "id": pin.id,
+            "lat": pin.latitude,
+            "lon": pin.longitude,
+            "caption": pin.caption or "",
+            "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+            "updated": True,
+        })
+
+    return JsonResponse({"errors": form.errors}, status=400)
