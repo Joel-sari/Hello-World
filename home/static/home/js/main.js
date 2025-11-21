@@ -167,6 +167,9 @@ function createPinMesh(data) {
 }
 
 function showPopup(screenX, screenY, d) {
+  const canEdit = d.isOwner || d.user === window.CURRENT_USER || typeof d.user === "undefined";
+  // NOTE: typeof d.user === "undefined" covers /api/my-pins/, which returns no 'user' field but are all yours
+
   popup.innerHTML = `
     <div style="display:flex;gap:10px;align-items:flex-start">
       ${d.imageUrl ? `<img src="${d.imageUrl}" style="width:84px;height:84px;object-fit:cover;border-radius:8px">` : ""}
@@ -175,12 +178,18 @@ function showPopup(screenX, screenY, d) {
           (${Number(d.lat).toFixed(2)}, ${Number(d.lon).toFixed(2)})
         </div>
         <div style="opacity:.9">${d.caption ? d.caption : "No caption"}</div>
+        ${canEdit && d.id ? `
+          <div style="margin-top:8px">
+            <button class="edit-pin-btn" data-edit-pin-id="${d.id}">Edit</button>
+          </div>` : ""
+        }
       </div>
     </div>`;
   popup.style.left = `${screenX + 12}px`;
   popup.style.top  = `${screenY + 12}px`;
   popup.style.display = "block";
 }
+
 function hidePopup(){ popup.style.display = "none"; }
 
 renderer.domElement.addEventListener("mousemove", (e) => {
@@ -245,7 +254,10 @@ async function loadMyPins(){
     if(!res.ok) throw new Error(`HTTP ${res.status}`);
     const { pins } = await res.json();
     pinGroup.clear();
-    pins.forEach(p => pinGroup.add(createPinMesh(p)));
+    pins.forEach(p => { 
+      p.isOwner = true; 
+      pinGroup.add(createPinMesh(p));
+  });
   }catch(err){
     console.error("Failed to load pins:", err);
   }
@@ -407,6 +419,20 @@ document.addEventListener("DOMContentLoaded", () => {
   });
 });
 
+// ===============================
+// EDIT PIN BUTTON HANDLER
+// ===============================
+
+document.addEventListener("click", (e) => {
+  const btn = e.target.closest(".edit-pin-btn");
+  if (!btn) return;
+
+  const pinId = Number(btn.getAttribute("data-edit-pin-id"));
+  if (pinId && window.openEditModal) {
+    window.openEditModal(pinId);
+  }
+});
+
 function moveCameraTo(lat, lon) {
   console.log(`Move camera to lat=${lat}, lon=${lon}`);
 
@@ -428,6 +454,7 @@ function moveCameraTo(lat, lon) {
 function showPins(pins) {
   pinGroup.clear();
   pins.forEach((p) => {
+    p.isOwner = (p.user === window.CURRENT_USER);  // 👈 owner if username matches
     pinGroup.add(createPinMesh(p));
   });
 }
