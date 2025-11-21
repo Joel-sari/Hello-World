@@ -85,7 +85,11 @@
 {% endblock %}
 
 {% block scripts %}
+<script>
+  window.CURRENT_USER = "{{ user.username|escapejs }}";
+</script>
 <script type="module" src="{% static 'home/js/main.js' %}"></script>
+
 <script>
 document.addEventListener("DOMContentLoaded", () => {
   const modal = document.getElementById("pinModal");
@@ -93,28 +97,78 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeBtn = document.getElementById("closeModal");
   const form = document.getElementById("pinForm");
 
-  if (addBtn) addBtn.onclick = () => modal.classList.add("show");
-  if (closeBtn) closeBtn.onclick = () => modal.classList.remove("show");
+  // Track modal mode: "add" or "edit"
+  let mode = "add";
+  let currentPinId = null;
 
+  // ---------- Open modal ----------
+  if (addBtn) {
+    addBtn.onclick = () => {
+      mode = "add";
+      currentPinId = null;
+      form.reset();
+      modal.classList.add("show");
+    };
+  }
+
+  // ---------- Close modal ----------
+  if (closeBtn) {
+    closeBtn.onclick = () => modal.classList.remove("show");
+  }
+
+  // ---------- Handle submit ----------
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     const formData = new FormData(form);
 
-    const res = await fetch("{% url 'add_pin' %}", {
+    // Pick correct endpoint
+    let url = "{% url 'add_pin' %}";
+    if (mode === "edit" && currentPinId) {
+      url = `/api/edit-pin/${currentPinId}/`;
+    }
+
+    const res = await fetch(url, {
       method: "POST",
       headers: { "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]').value },
       body: formData,
     });
 
     if (res.ok) {
-      const newPin = await res.json();
+      const data = await res.json();
       modal.classList.remove("show");
       form.reset();
-      if (window.addPinToGlobe) window.addPinToGlobe(newPin);
+
+      // If you already have addPinToGlobe() defined, refresh or update here
+      if (window.addPinToGlobe) window.addPinToGlobe(data);
+      else window.location.reload();
     } else {
-      alert("Failed to add pin");
+      alert("Failed to save pin");
     }
   });
+
+  // ---------- EDIT FEATURE ----------
+  // Called when clicking the "Edit" button for a pin
+  window.openEditModal = async function (pinId) {
+    const res = await fetch(`/api/edit-pin/${pinId}/`);
+    if (!res.ok) {
+      alert("Could not load pin data.");
+      return;
+    }
+
+    const pinData = await res.json();
+    mode = "edit";
+    currentPinId = pinId;
+
+    // Prefill modal fields
+    form.querySelector('[name="caption"]').value = pinData.caption || "";
+    if (pinData.imageUrl) {
+      // You can preview image if you want
+      console.log("Existing image:", pinData.imageUrl);
+    }
+
+    modal.classList.add("show");
+  };
 });
 </script>
 {% endblock %}
+
