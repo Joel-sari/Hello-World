@@ -200,9 +200,53 @@ renderer.domElement.addEventListener("mousemove", (e) => {
 
 renderer.domElement.addEventListener("click", (e) => {
   if (!hoveredPin) return;
-  const rect = renderer.domElement.getBoundingClientRect();
-  showPopup(e.clientX - rect.left, e.clientY - rect.top, hoveredPin.userData);
+  openPinDetails(hoveredPin.userData);
 });
+
+
+function openPinDetails(data) {
+  const modal = document.getElementById("pinDetailsModal");
+
+  document.getElementById("detailCaption").textContent = data.caption || "No caption";
+  document.getElementById("detailCoords").textContent = `(${data.lat.toFixed(2)}, ${data.lon.toFixed(2)})`;
+  document.getElementById("detailImage").src = data.imageUrl || "";
+
+  // Save pin ID for reacting
+  modal.dataset.pinId = data.id;
+
+  // Load reaction summary
+  loadReactions(data.id);
+
+  modal.classList.add("show");
+}
+
+document.getElementById("closePinDetails").onclick = () => {
+  document.getElementById("pinDetailsModal").classList.remove("show");
+};
+
+
+async function loadReactions(pinId) {
+  const res = await fetch(`/api/pin/${pinId}/`, { credentials: "same-origin" });
+  if (!res.ok) return;
+
+  const data = await res.json();
+
+  // Reaction counts
+  const countsDiv = document.getElementById("reactionCounts");
+  countsDiv.innerHTML = "";
+
+  const icons = { like: "👍", love: "❤️", laugh: "😂", wow: "😮" };
+
+  for (const [emoji, count] of Object.entries(data.reaction_counts)) {
+    countsDiv.innerHTML += `<span>${icons[emoji]} ${count}</span>`;
+  }
+
+  // Highlight user's reaction
+  document.querySelectorAll(".react-btn").forEach(btn => {
+    btn.style.opacity = (btn.dataset.emoji === data.user_reaction) ? "1" : "0.4";
+  });
+}
+
 
 async function loadMyPins(){
   try{
@@ -414,4 +458,25 @@ function showPins(pins) {
     pinGroup.add(createPinMesh(p));
   });
 }
+
+document.querySelectorAll(".react-btn").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const emoji = btn.dataset.emoji;
+    const modal = document.getElementById("pinDetailsModal");
+    const pinId = modal.dataset.pinId;
+
+    const res = await fetch(`/api/react/${pinId}/`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]')?.value
+      },
+      body: JSON.stringify({ emoji })
+    });
+
+    if (res.ok) {
+      loadReactions(pinId); // refresh UI
+    }
+  });
+});
 

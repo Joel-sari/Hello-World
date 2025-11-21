@@ -47,6 +47,31 @@
   </div>
 </div>
 
+<!-- ============================
+     PIN DETAILS MODAL (View + Reactions)
+============================= -->
+<div id="pinDetailsModal" class="modal hidden">
+  <div class="modal-content" style="width: 350px">
+    <img id="detailImage" style="width:100%;border-radius:10px;margin-bottom:10px">
+    <p id="detailCaption" style="margin-bottom:10px;font-size:14px;"></p>
+    <p id="detailCoords" style="font-size:12px;color:#555;margin-bottom:12px;"></p>
+
+    <!-- ⭐ Reaction Bar -->
+    <div id="reactionBar" style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;font-size:22px;cursor:pointer;">
+      <span class="react-btn" data-emoji="like">👍</span>
+      <span class="react-btn" data-emoji="love">❤️</span>
+      <span class="react-btn" data-emoji="laugh">😂</span>
+      <span class="react-btn" data-emoji="wow">😮</span>
+    </div>
+
+    <!-- ⭐ Reaction Counts -->
+    <div id="reactionCounts" style="display:flex;gap:10px;justify-content:center;font-size:14px;color:#444;"></div>
+
+    <button id="closePinDetails" style="margin-top:12px;">Close</button>
+  </div>
+</div>
+
+
 <style>
 .modal { display:none; position:fixed; inset:0; background:rgba(0,0,0,.5);
   justify-content:center; align-items:center; }
