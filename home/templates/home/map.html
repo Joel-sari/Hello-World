@@ -1,4 +1,10 @@
-{% extends 'home/base.html' %} {% load static %} {% block body_class%}mode-map{% endblock %} {% block content %}
+{# home/templates/home/map.html #}
+{% extends 'home/base.html' %}
+{% load static %}
+
+{% block body_class %}mode-map{% endblock %}
+
+{% block content %}
 
 <canvas id="bg"></canvas>
 
@@ -21,74 +27,14 @@
 <button id="addPinBtn">＋ Add Pin</button>
 {% endif %}
 
-<div id="pinModal" class="modal hidden">
-  <div class="modal-content">
-    <form id="pinForm" enctype="multipart/form-data">
-      {% csrf_token %}
-      <label>Latitude</label>
-      <input type="number" name="latitude" step="any" required />
-      <label>Longitude</label>
-      <input type="number" name="longitude" step="any" required />
-      <label>Caption</label>
-      <input type="text" name="caption" maxlength="280" />
-      <label>Image</label>
-      <input type="file" name="image" accept="image/*" />
-      <div class="modal-buttons">
-        <button type="submit">Save</button>
-        <button type="button" id="closeModal">Cancel</button>
-      </div>
-    </form>
-  </div>
-</div>
+{# ① Add-pin overlay (create / edit form) #}
+{% include "home/ui_components/add_pin.html" %}
 
-<!-- ============================
-     PIN DETAILS MODAL (View + Reactions)
-============================= -->
-<div id="pinDetailsModal" class="modal hidden">
-  <div class="modal-content" style="width: 350px">
-    <img
-      id="detailImage"
-      style="width: 100%; border-radius: 10px; margin-bottom: 10px"
-    />
-    <p id="detailCaption" style="margin-bottom: 10px; font-size: 14px"></p>
-    <p
-      id="detailCoords"
-      style="font-size: 12px; color: #555; margin-bottom: 12px"
-    ></p>
+{# ② View + reactions overlay #}
+{% include "home/ui_components/pin_details.html" %}
 
-    <!-- ⭐ Reaction Bar -->
-    <div
-      id="reactionBar"
-      style="
-        display: flex;
-        gap: 12px;
-        justify-content: center;
-        margin-bottom: 12px;
-        font-size: 22px;
-        cursor: pointer;
-      "
-    >
-      <span class="react-btn" data-emoji="like">👍</span>
-      <span class="react-btn" data-emoji="love">❤️</span>
-      <span class="react-btn" data-emoji="laugh">😂</span>
-      <span class="react-btn" data-emoji="wow">😮</span>
-    </div>
-
-    <!-- ⭐ Reaction Counts -->
-    <div
-      id="reactionCounts"
-      style="
-        display: flex;
-        gap: 10px;
-        justify-content: center;
-        font-size: 14px;
-        color: #444;
-      "
-    ></div>
-
-    <button id="closePinDetails" style="margin-top: 12px">Close</button>
-  </div>
-</div>
+{# ③ Edit overlay (owner only) #}
+{% include "home/ui_components/edit_pin.html" %}
 
 <style>
   .modal {
@@ -127,93 +73,19 @@
   }
 </style>
 
-{% endblock %} {% block scripts %}
+{% endblock %}
+
+{% block scripts %}
 <script>
+  // Globals that front-end JS needs
   window.CURRENT_USER = "{{ user.username|escapejs }}";
+  window.ADD_PIN_URL = "{% url 'add_pin' %}";
+  window.EDIT_PIN_BASE_URL = "/api/edit-pin/";
 </script>
+
+<!-- Three.js globe + pins -->
 <script type="module" src="{% static 'home/js/main.js' %}"></script>
 
-<script>
-  document.addEventListener("DOMContentLoaded", () => {
-    const modal = document.getElementById("pinModal");
-    const addBtn = document.getElementById("addPinBtn");
-    const closeBtn = document.getElementById("closeModal");
-    const form = document.getElementById("pinForm");
-
-    // Track modal mode: "add" or "edit"
-    let mode = "add";
-    let currentPinId = null;
-
-    // ---------- Open modal ----------
-    if (addBtn) {
-      addBtn.onclick = () => {
-        mode = "add";
-        currentPinId = null;
-        form.reset();
-        modal.classList.add("show");
-      };
-    }
-
-    // ---------- Close modal ----------
-    if (closeBtn) {
-      closeBtn.onclick = () => modal.classList.remove("show");
-    }
-
-    // ---------- Handle submit ----------
-    form.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const formData = new FormData(form);
-
-      // Pick correct endpoint
-      let url = "{% url 'add_pin' %}";
-      if (mode === "edit" && currentPinId) {
-        url = `/api/edit-pin/${currentPinId}/`;
-      }
-
-      const res = await fetch(url, {
-        method: "POST",
-        headers: {
-          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
-            .value,
-        },
-        body: formData,
-      });
-
-      if (res.ok) {
-        const data = await res.json();
-        modal.classList.remove("show");
-        form.reset();
-
-        // If you already have addPinToGlobe() defined, refresh or update here
-        if (window.addPinToGlobe) window.addPinToGlobe(data);
-        else window.location.reload();
-      } else {
-        alert("Failed to save pin");
-      }
-    });
-
-    // ---------- EDIT FEATURE ----------
-    // Called when clicking the "Edit" button for a pin
-    window.openEditModal = async function (pinId) {
-      const res = await fetch(`/api/edit-pin/${pinId}/`);
-      if (!res.ok) {
-        alert("Could not load pin data.");
-        return;
-      }
-
-      const pinData = await res.json();
-      mode = "edit";
-      currentPinId = pinId;
-
-      // Prefill modal fields
-      form.querySelector('[name="caption"]').value = pinData.caption || "";
-      if (pinData.imageUrl) {
-        // You can preview image if you want
-        console.log("Existing image:", pinData.imageUrl);
-      }
-
-      modal.classList.add("show");
-    };
-  });
-</script>
+<!-- UI logic for add/edit/reaction modals -->
+<script src="{% static 'home/js/pin_modals.js' %}"></script>
 {% endblock %}
