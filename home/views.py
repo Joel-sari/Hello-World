@@ -186,6 +186,17 @@ def search_by_country(request):
         "pins": pins,
     })
 @login_required
+def get_pin(request, pin_id):
+    pin = get_object_or_404(Pin, id=pin_id, user=request.user)
+    return JsonResponse({
+        "id": pin.id,
+        "lat": pin.latitude,
+        "lon": pin.longitude,
+        "caption": pin.caption or "",
+        "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+    })
+
+@login_required
 def add_pin(request):
     if request.method == "POST":
         form = PinForm(request.POST, request.FILES)
