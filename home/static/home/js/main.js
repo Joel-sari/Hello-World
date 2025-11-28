@@ -12,6 +12,10 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
 // --- MODE ---
 const MODE = document.body.classList.contains("mode-map") ? "map" : "login";
+// Load saved pins as soon as scene is ready (map mode only)
+if (MODE === "map") {
+  loadMyPins();
+}
 
 // --- SCENE / CAMERA / RENDERER ---
 const scene = new THREE.Scene();
@@ -34,7 +38,9 @@ renderer.setSize(window.innerWidth, window.innerHeight);
 
 // --- EARTH ---
 const textureLoader = new THREE.TextureLoader();
-const earthTexture = textureLoader.load("/static/home/textures/CartoonEarth.png");
+const earthTexture = textureLoader.load(
+  "/static/home/textures/FINALGLOBE.jpeg?v=" + Date.now()
+);
 
 const EARTH_RADIUS = 3;
 const earthGeo = new THREE.SphereGeometry(EARTH_RADIUS, 64, 64);
@@ -54,32 +60,49 @@ function makeCloudTexture(size = 256) {
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
   ctx.clearRect(0, 0, size, size);
-  const cx = size / 2, cy = size / 2, r = size * 0.45;
+  const cx = size / 2,
+    cy = size / 2,
+    r = size * 0.45;
   const grad = ctx.createRadialGradient(cx, cy, r * 0.15, cx, cy, r);
   grad.addColorStop(0, "rgba(255,255,255,0.75)");
   grad.addColorStop(0.5, "rgba(255,255,255,0.35)");
   grad.addColorStop(1, "rgba(255,255,255,0.0)");
-  const puff = (x, y, s=1)=>{ ctx.beginPath(); ctx.fillStyle = grad; ctx.arc(cx+x*r, cy+y*r, r*s, 0, Math.PI*2); ctx.fill(); };
-  puff(0,0,1.0); puff(-0.4,-0.1,0.7); puff(0.45,0.15,0.6); puff(0.1,-0.45,0.55);
+  const puff = (x, y, s = 1) => {
+    ctx.beginPath();
+    ctx.fillStyle = grad;
+    ctx.arc(cx + x * r, cy + y * r, r * s, 0, Math.PI * 2);
+    ctx.fill();
+  };
+  puff(0, 0, 1.0);
+  puff(-0.4, -0.1, 0.7);
+  puff(0.45, 0.15, 0.6);
+  puff(0.1, -0.45, 0.55);
   const tex = new THREE.CanvasTexture(canvas);
   tex.colorSpace = THREE.SRGBColorSpace;
   return tex;
 }
 
-const cloudsGroup = new THREE.Group(); scene.add(cloudsGroup);
-(function addSkyClouds(){
+const cloudsGroup = new THREE.Group();
+scene.add(cloudsGroup);
+(function addSkyClouds() {
   const tex = makeCloudTexture(256);
-  const mat = new THREE.SpriteMaterial({ map: tex, transparent: true, depthWrite: false });
-  const NUM = 4, SKY_R = EARTH_RADIUS * 1.35;
-  for (let i=0;i<NUM;i++){
+  const mat = new THREE.SpriteMaterial({
+    map: tex,
+    transparent: true,
+    depthWrite: false,
+  });
+  const NUM = 4,
+    SKY_R = EARTH_RADIUS * 1.35;
+  for (let i = 0; i < NUM; i++) {
     const s = new THREE.Sprite(mat.clone());
-    const theta = Math.random()*Math.PI, phi = Math.random()*Math.PI*2;
+    const theta = Math.random() * Math.PI,
+      phi = Math.random() * Math.PI * 2;
     s.position.set(
       SKY_R * Math.sin(theta) * Math.cos(phi),
       SKY_R * Math.cos(theta),
       SKY_R * Math.sin(theta) * Math.sin(phi)
     );
-    const size = 1.2 + Math.random()*0.6;
+    const size = 1.2 + Math.random() * 0.6;
     s.scale.set(size, size, 1);
     cloudsGroup.add(s);
   }
@@ -131,9 +154,9 @@ function latLonToVector3(lat, lon, radius) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
   return new THREE.Vector3(
-    -(radius) * Math.sin(phi) * Math.cos(theta),
-     (radius) * Math.cos(phi),
-     (radius) * Math.sin(phi) * Math.sin(theta)
+    -radius * Math.sin(phi) * Math.cos(theta),
+    radius * Math.cos(phi),
+    radius * Math.sin(phi) * Math.sin(theta)
   );
 }
 
@@ -156,41 +179,55 @@ function focusCameraOn(lat, lon, ms = 1500) {
 }
 
 const pinGeom = new THREE.SphereGeometry(EARTH_RADIUS * 0.01, 16, 16);
-function makePinMaterial() { return new THREE.MeshBasicMaterial({ color: 0xff6688 }); }
+function makePinMaterial() {
+  return new THREE.MeshBasicMaterial({ color: 0xff6688 });
+}
 
 function createPinMesh(data) {
   const m = new THREE.Mesh(pinGeom, makePinMaterial());
   m.userData = data;
   m.position.copy(latLonToVector3(data.lat, data.lon, PIN_SURFACE_R));
-  m.lookAt(new THREE.Vector3(0,0,0));
+  m.lookAt(new THREE.Vector3(0, 0, 0));
   return m;
 }
 
 function showPopup(screenX, screenY, d) {
-  const canEdit = d.isOwner || d.user === window.CURRENT_USER || typeof d.user === "undefined";
+  const canEdit =
+    d.isOwner ||
+    d.user === window.CURRENT_USER ||
+    typeof d.user === "undefined";
   // NOTE: typeof d.user === "undefined" covers /api/my-pins/, which returns no 'user' field but are all yours
 
   popup.innerHTML = `
     <div style="display:flex;gap:10px;align-items:flex-start">
-      ${d.imageUrl ? `<img src="${d.imageUrl}" style="width:84px;height:84px;object-fit:cover;border-radius:8px">` : ""}
+      ${
+        d.imageUrl
+          ? `<img src="${d.imageUrl}" style="width:84px;height:84px;object-fit:cover;border-radius:8px">`
+          : ""
+      }
       <div style="max-width:150px">
         <div style="font-weight:700;margin-bottom:6px">
           (${Number(d.lat).toFixed(2)}, ${Number(d.lon).toFixed(2)})
         </div>
         <div style="opacity:.9">${d.caption ? d.caption : "No caption"}</div>
-        ${canEdit && d.id ? `
+        ${
+          canEdit && d.id
+            ? `
           <div style="margin-top:8px">
             <button class="edit-pin-btn" data-edit-pin-id="${d.id}">Edit</button>
-          </div>` : ""
+          </div>`
+            : ""
         }
       </div>
     </div>`;
   popup.style.left = `${screenX + 12}px`;
-  popup.style.top  = `${screenY + 12}px`;
+  popup.style.top = `${screenY + 12}px`;
   popup.style.display = "block";
 }
 
-function hidePopup(){ popup.style.display = "none"; }
+function hidePopup() {
+  popup.style.display = "none";
+}
 
 renderer.domElement.addEventListener("mousemove", (e) => {
   const rect = renderer.domElement.getBoundingClientRect();
@@ -203,12 +240,14 @@ renderer.domElement.addEventListener("click", (e) => {
   openPinDetails(hoveredPin.userData);
 });
 
-
 function openPinDetails(data) {
   const modal = document.getElementById("pinDetailsModal");
 
-  document.getElementById("detailCaption").textContent = data.caption || "No caption";
-  document.getElementById("detailCoords").textContent = `(${data.lat.toFixed(2)}, ${data.lon.toFixed(2)})`;
+  document.getElementById("detailCaption").textContent =
+    data.caption || "No caption";
+  document.getElementById("detailCoords").textContent = `(${data.lat.toFixed(
+    2
+  )}, ${data.lon.toFixed(2)})`;
   document.getElementById("detailImage").src = data.imageUrl || "";
 
   // Save pin ID for reacting
@@ -220,10 +259,12 @@ function openPinDetails(data) {
   modal.classList.add("show");
 }
 
-document.getElementById("closePinDetails").onclick = () => {
-  document.getElementById("pinDetailsModal").classList.remove("show");
-};
-
+const closeBtn = document.getElementById("closePinDetails");
+if (closeBtn) {
+  closeBtn.onclick = () => {
+    document.getElementById("pinDetailsModal").classList.remove("show");
+  };
+}
 
 async function loadReactions(pinId) {
   const res = await fetch(`/api/pin/${pinId}/`, { credentials: "same-origin" });
@@ -242,37 +283,37 @@ async function loadReactions(pinId) {
   }
 
   // Highlight user's reaction
-  document.querySelectorAll(".react-btn").forEach(btn => {
-    btn.style.opacity = (btn.dataset.emoji === data.user_reaction) ? "1" : "0.4";
+  document.querySelectorAll(".react-btn").forEach((btn) => {
+    btn.style.opacity = btn.dataset.emoji === data.user_reaction ? "1" : "0.4";
   });
 }
 
-
-async function loadMyPins(){
-  try{
+async function loadMyPins() {
+  try {
     const res = await fetch("/api/my-pins/", { credentials: "same-origin" });
-    if(!res.ok) throw new Error(`HTTP ${res.status}`);
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
     const { pins } = await res.json();
     pinGroup.clear();
-    pins.forEach(p => { 
-      p.isOwner = true; 
+    pins.forEach((p) => {
+      p.isOwner = true;
       pinGroup.add(createPinMesh(p));
-  });
-  }catch(err){
+    });
+  } catch (err) {
     console.error("Failed to load pins:", err);
   }
 }
 
 window.addPinToGlobe = function (pin) {
+  pin.isOwner = true; // ensure hover UI sees it as yours
   const mesh = createPinMesh(pin);
   pinGroup.add(mesh);
 
-  // Center the camera on the new pin
+  // Smooth camera to new pin
   focusCameraOn(pin.lat, pin.lon);
 };
 
 // --- HOVER CHECK inside render loop ---
-function updatePinHover(){
+function updatePinHover() {
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(pinGroup.children, false);
   if (hits.length > 0) {
@@ -320,23 +361,27 @@ animate();
 // CAMERA REVEAL + ORBIT
 // ===============================
 function revealMap({ toY = 0, toZ = 4.5, ms = 1000 } = {}) {
-  const fromY = camera.position.y, fromZ = camera.position.z, start = performance.now();
+  const fromY = camera.position.y,
+    fromZ = camera.position.z,
+    start = performance.now();
   const card = document.getElementById("login-container");
   if (card) card.classList.add("fade-out");
   const ease = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
   const step = (now) => {
-    const t = Math.min(1, (now - start) / ms), k = ease(t);
+    const t = Math.min(1, (now - start) / ms),
+      k = ease(t);
     camera.position.y = fromY + (toY - fromY) * k;
     camera.position.z = fromZ + (toZ - fromZ) * k;
     camera.lookAt(earth.position);
-    if (t < 1) requestAnimationFrame(step); else enableOrbit();
+    if (t < 1) requestAnimationFrame(step);
+    else enableOrbit();
   };
   requestAnimationFrame(step);
 }
 
 let orbitEnabled = false;
 const spherical = new THREE.Spherical();
-const orbitState = { dragging:false, lastX:0, lastY:0 };
+const orbitState = { dragging: false, lastX: 0, lastY: 0 };
 
 function enableOrbit() {
   if (orbitEnabled || MODE !== "map") return;
@@ -351,12 +396,14 @@ function enableOrbit() {
     if (!orbitState.dragging) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const y = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = x - orbitState.lastX, dy = y - orbitState.lastY;
-    orbitState.lastX = x; orbitState.lastY = y;
+    const dx = x - orbitState.lastX,
+      dy = y - orbitState.lastY;
+    orbitState.lastX = x;
+    orbitState.lastY = y;
 
     spherical.setFromVector3(camera.position.clone());
     spherical.theta -= dx * 0.005;
-    spherical.phi   -= dy * 0.005;
+    spherical.phi -= dy * 0.005;
     const EPS = 0.1;
     spherical.phi = Math.max(EPS, Math.min(Math.PI - EPS, spherical.phi));
     camera.position.setFromSpherical(spherical);
@@ -382,9 +429,8 @@ window.addEventListener("resize", () => {
   renderer.setSize(window.innerWidth, window.innerHeight);
 });
 
-
 // ===============================
-// COUNTRY SEARCH FEATURE 
+// COUNTRY SEARCH FEATURE
 // ===============================
 document.addEventListener("DOMContentLoaded", () => {
   const searchBtn = document.getElementById("search-btn");
@@ -397,7 +443,9 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!country) return alert("Please enter a country name.");
 
     try {
-      const res = await fetch(`/api/search/?country=${encodeURIComponent(country)}`);
+      const res = await fetch(
+        `/api/search/?country=${encodeURIComponent(country)}`
+      );
       if (!res.ok) {
         const err = await res.json();
         alert(err.error || "Search failed.");
@@ -454,12 +502,12 @@ function moveCameraTo(lat, lon) {
 function showPins(pins) {
   pinGroup.clear();
   pins.forEach((p) => {
-    p.isOwner = (p.user === window.CURRENT_USER);  // 👈 owner if username matches
+    p.isOwner = p.user === window.CURRENT_USER; // 👈 owner if username matches
     pinGroup.add(createPinMesh(p));
   });
 }
 
-document.querySelectorAll(".react-btn").forEach(btn => {
+document.querySelectorAll(".react-btn").forEach((btn) => {
   btn.addEventListener("click", async () => {
     const emoji = btn.dataset.emoji;
     const modal = document.getElementById("pinDetailsModal");
@@ -469,9 +517,10 @@ document.querySelectorAll(".react-btn").forEach(btn => {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": document.querySelector('[name=csrfmiddlewaretoken]')?.value
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+          ?.value,
       },
-      body: JSON.stringify({ emoji })
+      body: JSON.stringify({ emoji }),
     });
 
     if (res.ok) {
@@ -479,4 +528,3 @@ document.querySelectorAll(".react-btn").forEach(btn => {
     }
   });
 });
-
