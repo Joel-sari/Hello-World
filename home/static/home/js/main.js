@@ -12,10 +12,7 @@
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
 // --- MODE ---
 const MODE = document.body.classList.contains("mode-map") ? "map" : "login";
-// Load saved pins as soon as scene is ready (map mode only)
-if (MODE === "map") {
-  loadMyPins();
-}
+
 
 // --- SCENE / CAMERA / RENDERER ---
 const scene = new THREE.Scene();
@@ -192,6 +189,13 @@ function createPinMesh(data) {
 }
 
 function showPopup(screenX, screenY, d) {
+  if (
+    document.getElementById("pinDetailsModal")?.classList.contains("show") ||
+    document.getElementById("editPinModal")?.classList.contains("show")
+  ) {
+    return; // skip hover popup entirely
+  }
+  
   const canEdit =
     d.isOwner ||
     d.user === window.CURRENT_USER ||
@@ -237,7 +241,18 @@ renderer.domElement.addEventListener("mousemove", (e) => {
 
 renderer.domElement.addEventListener("click", (e) => {
   if (!hoveredPin) return;
-  openPinDetails(hoveredPin.userData);
+  // If clicking a pin, switch to proper modal behavior
+  const data = hoveredPin.userData;
+
+  // Owner → open EDIT modal
+  if (data.isOwner) {
+    openEditModal(data.id);
+  }
+
+  // NOT owner → open DETAILS modal
+  else {
+    openPinDetails(data);
+  }
 });
 
 function openPinDetails(data) {
@@ -314,6 +329,17 @@ window.addPinToGlobe = function (pin) {
 
 // --- HOVER CHECK inside render loop ---
 function updatePinHover() {
+
+  const detailsOpen = document
+    .getElementById("pinDetailsModal")
+    ?.classList.contains("show");
+  const editOpen = document
+    .getElementById("editPinModal")
+    ?.classList.contains("show");
+  if (detailsOpen || editOpen) {
+    hidePopup();
+    return;
+  }
   raycaster.setFromCamera(mouse, camera);
   const hits = raycaster.intersectObjects(pinGroup.children, false);
   if (hits.length > 0) {

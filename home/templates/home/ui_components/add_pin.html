@@ -1,0 +1,23 @@
+<div id="pinModal" class="modal hidden">
+  <div class="modal-content">
+    <form id="pinForm" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label>Latitude</label>
+      <input type="number" name="latitude" step="any" required />
+
+      <label>Longitude</label>
+      <input type="number" name="longitude" step="any" required />
+
+      <label>Caption</label>
+      <input type="text" name="caption" maxlength="280" />
+
+      <label>Image</label>
+      <input type="file" name="image" accept="image/*" />
+
+      <div class="modal-buttons">
+        <button type="submit">Save</button>
+        <button type="button" id="closeModal">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
