@@ -9,6 +9,8 @@ from .forms import SignUpForm
 from django.http import JsonResponse
 from .models import Pin
 from .forms import PinForm
+import requests
+from django.conf import settings
 
 
 class LoginForm(forms.Form):
@@ -70,23 +72,63 @@ def map_view(request):
     # Full globe view (camera reveal happens on load)
     return render(request, "home/map.html")
 
-
+# home/views.py
 @login_required
 def my_pins(request):
     pins = Pin.objects.filter(user=request.user).values(
         "id", "latitude", "longitude", "caption", "image"
     )
-    # Convert to list and expand image URL if present
     data = []
+    username = request.user.username
+
     for p in pins:
         data.append({
             "id": p["id"],
             "lat": p["latitude"],
             "lon": p["longitude"],
             "caption": p["caption"] or "",
-            "imageUrl": request.build_absolute_uri(p["image"]) if p["image"] else None,
+            "imageUrl": request.build_absolute_uri("/media/" + p["image"]) if p["image"] else None,
+            "user": username,          # 👈 add this
         })
     return JsonResponse({"pins": data})
+
+def geocode_location(city: str, state: str, country: str):
+    """
+    Use OpenCage API to turn (city/state/country) into (lat, lon).
+    Returns (lat, lon) or None if nothing found.
+    """
+    # Build a nice query string like: "Madrid, Community of Madrid, Spain"
+    parts = [city.strip()] if city else []
+    if state:
+        parts.append(state.strip())
+    if country:
+        parts.append(country.strip())
+    query = ", ".join(p for p in parts if p)
+
+    if not query:
+        return None
+
+    url = "https://api.opencagedata.com/geocode/v1/json"
+    params = {
+        "q": query,
+        "key": settings.OPENCAGE_API_KEY,
+        "limit": 1,
+    }
+
+    try:
+        resp = requests.get(url, params=params, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+    except Exception:
+        return None
+
+    if not data.get("results"):
+        return None
+
+    geom = data["results"][0]["geometry"]
+    return float(geom["lat"]), float(geom["lng"])
+
+
 
 
 # ------------------------------
@@ -95,6 +137,7 @@ def my_pins(request):
 
 # Very lightweight static bounds for a few countries.
 # You can expand this list anytime (values are approximate).
+
 COUNTRY_BOUNDS = {
     # lat_min, lat_max, lon_min, lon_max
     "united states": (24.5, 49.5, -125.0, -66.9),
@@ -185,46 +228,165 @@ def search_by_country(request):
         "center": _bounds_to_center(bounds),
         "pins": pins,
     })
+
+# This will replace the search by country functions since we want our users to be able to search for any country or city not just a fixed amount. 
+@login_required
+def search_location(request):
+    """
+    GET /api/search/?q=<location>
+    Supports any city, country, region, landmark via OpenCage.
+    Returns:
+      { "center": [lat, lon], "pins": [ ... ] }
+    """
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"error": "Missing 'q' parameter."}, status=400)
+
+    # Use the same geocoder used for pin creation
+    geo = geocode_location(city=query, state="", country="")
+    if not geo:
+        return JsonResponse({"error": "Location not found."}, status=404)
+
+    lat, lon = geo
+
+    # Fetch pins within ~5 degrees (rough bounding box)
+    lat_min, lat_max = lat - 5, lat + 5
+    lon_min, lon_max = lon - 5, lon + 5
+
+    pins_qs = Pin.objects.filter(
+        latitude__gte=lat_min,
+        latitude__lte=lat_max,
+        longitude__gte=lon_min,
+        longitude__lte=lon_max,
+    )
+
+    pins = []
+    for p in pins_qs:
+        pins.append({
+            "id": p.id,
+            "user": p.user.username,
+            "caption": p.caption or "",
+            "lat": p.latitude,
+            "lon": p.longitude,
+            "imageUrl": request.build_absolute_uri(p.image.url) if p.image else None,
+        })
+
+    return JsonResponse({
+        "query": query,
+        "center": [lat, lon],
+        "pins": pins,
+    })
+@login_required
+def get_pin(request, pin_id):
+    # Allow viewing any pin; ownership is enforced in edit_pin
+    pin = get_object_or_404(Pin, id=pin_id)
+
+    return JsonResponse({
+        "id": pin.id,
+        "lat": pin.latitude,
+        "lon": pin.longitude,
+        "caption": pin.caption or "",
+        "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+        "user": pin.user.username,
+        "city": pin.city,
+        "country": pin.country,
+    })
+
 @login_required
 def add_pin(request):
     if request.method == "POST":
         form = PinForm(request.POST, request.FILES)
         if form.is_valid():
-            pin = form.save(commit=False)
-            pin.user = request.user
-            pin.save()
+            temp_pin = form.save(commit=False)
+
+            # Geocode the human location fields
+            geo = geocode_location(
+                city=temp_pin.city,
+                state=temp_pin.state,
+                country=temp_pin.country,
+            )
+            if not geo:
+                return JsonResponse(
+                    {"errors": {"location": ["Could not find that location. Try a more specific city/state/country."]}},
+                    status=400,
+                )
+
+            lat, lon = geo
+            temp_pin.latitude = lat
+            temp_pin.longitude = lon
+            temp_pin.user = request.user
+            temp_pin.save()
+
             return JsonResponse({
-                "id": pin.id,
-                "lat": pin.latitude,
-                "lon": pin.longitude,
-                "caption": pin.caption,
-                "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+                "id": temp_pin.id,
+                "lat": temp_pin.latitude,
+                "lon": temp_pin.longitude,
+                "caption": temp_pin.caption,
+                "imageUrl": request.build_absolute_uri(temp_pin.image.url) if temp_pin.image else None,
+                "city": temp_pin.city,
+                "state": temp_pin.state,
+                "country": temp_pin.country,
             })
+
         return JsonResponse({"errors": form.errors}, status=400)
+
     return JsonResponse({"error": "POST required"}, status=405)
 
 @login_required
 def edit_pin(request, pin_id):
     """
     POST /api/edit-pin/<id>/
-    Allows the logged-in user to edit their own pin’s caption or image.
-    Body: multipart/form-data with (caption?, image?)
+    Allows the logged-in user to edit their own pin’s caption, image, and location.
     """
     pin = get_object_or_404(Pin, id=pin_id, user=request.user)
 
     if request.method != "POST":
         return JsonResponse({"error": "POST required"}, status=405)
 
-    # Important: instance=pin updates instead of creating
+    # Store original location before updating the form
+    old_city = pin.city
+    old_state = pin.state
+    old_country = pin.country
+
     form = PinForm(request.POST, request.FILES, instance=pin)
+
     if form.is_valid():
-        form.save()
+        updated_pin = form.save(commit=False)
+
+        # If user changed any part of the location → re-geocode
+        if (updated_pin.city != old_city or
+            updated_pin.state != old_state or
+            updated_pin.country != old_country):
+
+            geo = geocode_location(
+                city=updated_pin.city,
+                state=updated_pin.state,
+                country=updated_pin.country,
+            )
+
+            if not geo:
+                return JsonResponse(
+                    {"errors": {"location": ["Could not find that location. Try a more specific city/state/country."]}},
+                    status=400,
+                )
+            
+            lat, lon = geo
+            updated_pin.latitude = lat
+            updated_pin.longitude = lon
+
+        updated_pin.save()
+
         return JsonResponse({
-            "id": pin.id,
-            "lat": pin.latitude,
-            "lon": pin.longitude,
-            "caption": pin.caption or "",
-            "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+            "id": updated_pin.id,
+            "lat": updated_pin.latitude,
+            "lon": updated_pin.longitude,
+            "caption": updated_pin.caption or "",
+            "imageUrl": request.build_absolute_uri(updated_pin.image.url) if updated_pin.image else None,
+            "city": updated_pin.city,
+            "state": updated_pin.state,
+            "country": updated_pin.country,
+            "user": updated_pin.user.username,
+            "isOwner": True,
             "updated": True,
         })
 
