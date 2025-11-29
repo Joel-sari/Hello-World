@@ -372,11 +372,34 @@ renderer.domElement.addEventListener("click", (e) => {
 function openPinDetails(data) {
   const modal = document.getElementById("pinDetailsModal");
 
+  // ===============================
+  // NEW — Instagram-style Pin Details
+  // ===============================
+
+  // Caption
   document.getElementById("detailCaption").textContent =
     data.caption || "No caption";
-  document.getElementById("detailCoords").textContent = `(${data.lat.toFixed(
-    2
-  )}, ${data.lon.toFixed(2)})`;
+
+  // Username (@handle)
+  document.getElementById("detailUser").textContent = data.user
+    ? `@${data.user}`
+    : "@unknown";
+
+  // City + State + Country (fallbacks provided)
+  const city = data.city || "";
+  const state = data.state || "";
+  const country = data.country || "";
+
+  let prettyLocation = "";
+  if (city && state && country)
+    prettyLocation = `${city}, ${state}, ${country}`;
+  else if (city && country) prettyLocation = `${city}, ${country}`;
+  else if (country) prettyLocation = `${country}`;
+  else prettyLocation = "Unknown location";
+
+  document.getElementById("detailLocation").textContent = prettyLocation;
+
+  // Image
   document.getElementById("detailImage").src = data.imageUrl || "";
 
   // Save pin ID for reacting
@@ -814,24 +837,73 @@ function showPins(pins) {
   });
 }
 
-document.querySelectorAll(".react-btn").forEach((btn) => {
-  btn.addEventListener("click", async () => {
-    const emoji = btn.dataset.emoji;
-    const modal = document.getElementById("pinDetailsModal");
-    const pinId = modal.dataset.pinId;
+// ===============================
+// FACEBOOK-STYLE REACTION POPUP
+// ===============================
+const reactionTrigger = document.getElementById("reactionTrigger");
+const reactionPopup = document.getElementById("reactionPopup");
+const userReaction = document.getElementById("userReaction");
+const reactionSummary = document.getElementById("reactionSummary");
 
+let popupVisible = false;
+
+// Position popup above trigger
+function showReactionPopup() {
+  const rect = reactionTrigger.getBoundingClientRect();
+  reactionPopup.style.left = `${rect.left + rect.width / 2 - 80}px`;
+  reactionPopup.style.top = `${rect.top - 60}px`;
+
+  reactionPopup.style.opacity = "1";
+  reactionPopup.style.pointerEvents = "auto";
+  popupVisible = true;
+}
+
+function hideReactionPopup() {
+  reactionPopup.style.opacity = "0";
+  reactionPopup.style.pointerEvents = "none";
+  popupVisible = false;
+}
+
+// Show on hover — desktop optimized
+reactionTrigger.addEventListener("mouseenter", showReactionPopup);
+reactionTrigger.addEventListener("mouseleave", () => {
+  setTimeout(() => {
+    if (!reactionPopup.matches(":hover")) hideReactionPopup();
+  }, 150);
+});
+
+reactionPopup.addEventListener("mouseleave", hideReactionPopup);
+
+// Hover animation
+document.querySelectorAll(".popup-react").forEach((emoji) => {
+  emoji.addEventListener("mouseenter", () => {
+    emoji.style.transform = "scale(1.3)";
+    emoji.style.transition = "0.15s ease";
+  });
+  emoji.addEventListener("mouseleave", () => {
+    emoji.style.transform = "scale(1.0)";
+  });
+
+  emoji.addEventListener("click", async () => {
+    const emojiType = emoji.dataset.emoji;
+    const pinId = document.getElementById("pinDetailsModal").dataset.pinId;
+
+    // Update UI instantly
+    userReaction.textContent = emoji.textContent;
+    reactionSummary.textContent = "Reacted";
+
+    hideReactionPopup();
+
+    // Send reaction to backend
     const res = await fetch(`/api/react/${pinId}/`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
-          ?.value,
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")?.value,
       },
-      body: JSON.stringify({ emoji }),
+      body: JSON.stringify({ emoji: emojiType }),
     });
 
-    if (res.ok) {
-      loadReactions(pinId); // refresh UI
-    }
+    if (res.ok) loadReactions(pinId);
   });
 });

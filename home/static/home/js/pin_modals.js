@@ -10,7 +10,11 @@
 document.addEventListener("DOMContentLoaded", () => {
   // ---------- DOM ELEMENT REFERENCES ----------
 
-  // Main modal wrapper (dark overlay behind the card)
+  // Main modal wrapper (dark overlay behind the card).
+  // NOTE: Visibility is controlled purely by the `hidden` class:
+  //   - has `hidden`  → hidden
+  //   - lacks `hidden` → visible
+  // The CSS in add_pin.html implements this behavior.
   const modal = document.getElementById("pinModal");
 
   // Floating "+ Add Pin" button (top-right of the globe)
@@ -41,10 +45,22 @@ document.addEventListener("DOMContentLoaded", () => {
   //  - show the modal
   if (addBtn) {
     addBtn.onclick = () => {
+      // Switch modal into "add" mode (we're creating a brand‑new pin)
       mode = "add";
       currentPinId = null;
+
+      // Clear any previous values the form might have had
       form.reset();
-      modal.classList.add("show");
+
+      // Show the modal by REMOVING the `hidden` class.
+      // CSS in add_pin.html uses:
+      //   #pinModal.modal { display: flex; ... }
+      //   #pinModal.hidden { display: none; }
+      //
+      // So:
+      //   - when `hidden` is present  → modal is invisible
+      //   - when `hidden` is removed → modal becomes visible
+      modal.classList.remove("hidden");
     };
   }
 
@@ -53,7 +69,9 @@ document.addEventListener("DOMContentLoaded", () => {
   // Clicking "Cancel" just hides the modal and keeps
   // whatever is on the globe as-is.
   if (closeBtn) {
-    closeBtn.onclick = () => modal.classList.remove("show");
+    // Clicking "Cancel" should just hide the modal again.
+    // We do this by ADDING the `hidden` class back.
+    closeBtn.onclick = () => modal.classList.add("hidden");
   }
 
   // ---------- SUBMIT HANDLER (ADD OR EDIT) ----------
@@ -91,7 +109,10 @@ document.addEventListener("DOMContentLoaded", () => {
       const data = await res.json();
 
       // Hide modal + reset form fields
-      modal.classList.remove("show");
+      //
+      // We add the `hidden` class back so that CSS switches the
+      // modal's display back to "none".
+      modal.classList.add("hidden");
       form.reset();
 
       // If main.js exposes addPinToGlobe(pinData), use it to:
@@ -154,7 +175,25 @@ document.addEventListener("DOMContentLoaded", () => {
     if (countryInput) countryInput.value = pinData.country || "";
     if (captionInput) captionInput.value = pinData.caption || "";
 
-    // Show the modal
-    modal.classList.add("show");
+    // Show the modal for editing by removing `hidden`.
+    // This uses the same visibility mechanism as the "Add Pin" flow.
+    modal.classList.remove("hidden");
   };
+});
+
+//allows for profile dropdown menu
+document.addEventListener("DOMContentLoaded", function () {
+  const trigger = document.getElementById("profile-trigger");
+  const dropdown = document.getElementById("profile-dropdown");
+
+  if (!trigger || !dropdown) return;
+
+  trigger.addEventListener("click", function (event) {
+    event.stopPropagation();
+    dropdown.classList.toggle("open");
+  });
+
+  document.addEventListener("click", function () {
+    dropdown.classList.remove("open");
+  });
 });
