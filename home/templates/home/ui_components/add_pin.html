@@ -2,17 +2,52 @@
   <div class="modal-content">
     <form id="pinForm" enctype="multipart/form-data">
       {% csrf_token %}
-      <label>Latitude</label>
-      <input type="number" name="latitude" step="any" required />
 
-      <label>Longitude</label>
-      <input type="number" name="longitude" step="any" required />
+      <!-- Location fields -->
+      <label for="countryInput">Country</label>
+      <input
+        id="countryInput"
+        type="text"
+        name="country"
+        placeholder="United States"
+        required
+      />
 
-      <label>Caption</label>
-      <input type="text" name="caption" maxlength="280" />
+      <label for="stateInput">State / Region (optional)</label>
+      <input
+        id="stateInput"
+        type="text"
+        name="state"
+        placeholder="Georgia"
+      />
 
-      <label>Image</label>
-      <input type="file" name="image" accept="image/*" />
+      <label for="cityInput">City</label>
+      <input
+        id="cityInput"
+        type="text"
+        name="city"
+        placeholder="Atlanta"
+        required
+      />
+
+      <!-- Caption -->
+      <label for="captionInput">Caption</label>
+      <input
+        id="captionInput"
+        type="text"
+        name="caption"
+        maxlength="280"
+        placeholder="Trip with friends 👋"
+      />
+
+      <!-- Image -->
+      <label for="imageInput">Image</label>
+      <input
+        id="imageInput"
+        type="file"
+        name="image"
+        accept="image/*"
+      />
 
       <div class="modal-buttons">
         <button type="submit">Save</button>
