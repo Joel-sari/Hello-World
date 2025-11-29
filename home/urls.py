@@ -14,7 +14,8 @@ urlpatterns = [
 
     # === API endpoints ===
     path("api/my-pins/", views.my_pins, name="my_pins"),
-    path("api/search/", views.search_by_country, name="search_by_country"),
+    #path("api/search/", views.search_by_country, name="search_by_country"), This is old 
+    path("api/search/", views.search_location, name="search_location"),
     path("api/add-pin/", views.add_pin, name="add_pin"),
 
     # 🔹 new: fetch a single pin for the details/edit modal

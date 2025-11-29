@@ -26,4 +26,4 @@ class SignUpForm(UserCreationForm):
 class PinForm(forms.ModelForm):
     class Meta:
         model = Pin
-        fields = ["latitude", "longitude", "caption", "image"]
+        fields = ["city", "state", "country", "caption", "image"]

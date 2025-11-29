@@ -126,7 +126,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (detailsModal) {
       detailsModal.classList.remove("show");
     }
-    
+
     // GET existing pin data from Django
     const res = await fetch(`/api/pin/${pinId}/`, {
       credentials: "same-origin",
@@ -143,13 +143,15 @@ document.addEventListener("DOMContentLoaded", () => {
     mode = "edit";
     currentPinId = pinId;
 
-    // Prefill fields so user can tweak values instead of retyping
-    const latInput = form.querySelector('[name="latitude"]');
-    const lonInput = form.querySelector('[name="longitude"]');
+    // Prefill human-readable location fields instead of raw lat/lon
+    const cityInput = form.querySelector('[name="city"]');
+    const stateInput = form.querySelector('[name="state"]');
+    const countryInput = form.querySelector('[name="country"]');
     const captionInput = form.querySelector('[name="caption"]');
 
-    if (latInput) latInput.value = pinData.lat;
-    if (lonInput) lonInput.value = pinData.lon;
+    if (cityInput) cityInput.value = pinData.city || "";
+    if (stateInput) stateInput.value = pinData.state || "";
+    if (countryInput) countryInput.value = pinData.country || "";
     if (captionInput) captionInput.value = pinData.caption || "";
 
     // Show the modal
