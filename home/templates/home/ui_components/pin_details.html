@@ -1,44 +1,104 @@
 <div id="pinDetailsModal" class="modal hidden">
   <div class="modal-content" style="width: 350px">
-    <img id="detailImage"
-         style="width: 100%; border-radius: 10px; margin-bottom: 10px" />
-    <p id="detailCaption"
-       style="margin-bottom: 10px; font-size: 14px"></p>
-    <p id="detailCoords"
-       style="font-size: 12px; color: #555; margin-bottom: 12px"></p>
 
-    <!-- ⭐ Reaction Bar -->
-    <div id="reactionBar"
-         style="display: flex; gap: 12px; justify-content: center;
-                margin-bottom: 12px; font-size: 22px; cursor: pointer;">
-      <span class="react-btn" data-emoji="like">👍</span>
-      <span class="react-btn" data-emoji="love">❤️</span>
-      <span class="react-btn" data-emoji="laugh">😂</span>
-      <span class="react-btn" data-emoji="wow">😮</span>
+    <!-- Top Bar: User (left) + Location (right) -->
+    <div 
+      style="
+        display:flex; 
+        justify-content:space-between; 
+        align-items:center; 
+        margin-bottom:14px; 
+        font-family:Inter, system-ui;
+      "
+    >
+      <!-- Username -->
+      <div style="display:flex; flex-direction:column;">
+        <span id="detailUser"
+              style="font-weight:600; font-size:15px; color:#0f766e;">
+        </span>
+      </div>
+
+      <!-- Location (City, Country) + pin icon -->
+      <div style="display:flex; align-items:center; gap:6px;">
+        <img src="/static/home/textures/pin_sprite.png"
+             style="width:14px; height:14px; opacity:0.85;">
+        <span id="detailLocation"
+              style="font-size:13px; color:#0f766e; opacity:0.85;">
+        </span>
+      </div>
+    </div>
+     <!-- Image -->
+    <img id="detailImage"
+         style="width:100%; border-radius:14px; margin-bottom:14px; box-shadow:0 4px 12px rgba(0,0,0,0.25);" />
+
+  
+
+    <!-- MAIN REACTION TRIGGER -->
+<div id="reactionTrigger"
+     style="display:flex; align-items:center; gap:8px; margin-top:12px;
+            cursor:pointer; user-select:none;">
+  <span id="userReaction" style="font-size:20px;">👍</span>
+  <span id="reactionSummary"
+        style="font-size:14px; color:#0f766e; opacity:0.9;">
+    React
+  </span>
+</div>
+
+<!-- POPUP REACTION BAR (hidden by default) -->
+<div id="reactionPopup"
+     style="
+       position:absolute;
+       display:flex;
+       gap:12px;
+       padding:10px 14px;
+       background:white;
+       border-radius:40px;
+       box-shadow:0 8px 20px rgba(0,0,0,0.25);
+       border:1px solid rgba(0,0,0,0.05);
+       z-index:9999;
+       top:-9999px;
+       left:-9999px;
+       opacity:0;
+       pointer-events:none;
+       transition:opacity .18s ease;
+     ">
+  <span class="popup-react" data-emoji="like"  style="font-size:26px; cursor:pointer;">👍</span>
+  <span class="popup-react" data-emoji="love"  style="font-size:26px; cursor:pointer;">❤️</span>
+  <span class="popup-react" data-emoji="laugh" style="font-size:26px; cursor:pointer;">😂</span>
+  <span class="popup-react" data-emoji="wow"   style="font-size:26px; cursor:pointer;">😮</span>
+</div>
+
+<!-- Reaction Counts -->
+<div id="reactionCounts"
+     style="display:flex; gap:12px; justify-content:center;
+            font-size:14px; color:#0f766e; margin-top:20px;">
+</div>
+    <!-- Caption Label + Text (inline) -->
+    <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:18px; font-family:Inter, system-ui;">
+      <span style="font-size:13px; color:#0f766e; font-weight:600;">
+        Caption:
+      </span>
+      <span id="detailCaption"
+            style="font-size:14px; line-height:1.45; color:#0f766e;">
+      </span>
     </div>
 
-    <!-- ⭐ Reaction Counts -->
-    <div id="reactionCounts"
-         style="display: flex; gap: 10px; justify-content: center;
-                font-size: 14px; color: #444;"></div>
+    
 
-    <!-- ⭐ Actions Row (Close + optional Edit) -->
+    <!-- Action buttons -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
-      <!-- Close is always visible -->
       <button id="closePinDetails"
-              style="padding:6px 14px; border-radius:6px;
-                     border:1px solid #0f766e; background:#ecfdf5;
-                     color:#0f766e; font-size:13px; cursor:pointer;">
+              style="padding:8px 16px; border-radius:6px; border:1px solid #0f766e;
+                     background:white; color:#0f766e; font-size:13px; cursor:pointer;">
         Close
       </button>
 
-      <!-- Owner actions (Edit) - only shown for owner via JS -->
       <div id="ownerActions" style="display:none;">
         <button id="editPinButton"
                 class="edit-pin-btn"
                 data-edit-pin-id=""
-                style="padding:6px 14px; border:none; border-radius:6px;
-                       background:#16a34a; color:white; cursor:pointer;
+                style="padding:8px 16px; border:none; border-radius:6px;
+                       background:#0f766e; color:white; cursor:pointer;
                        font-size:13px;">
           Edit Pin
         </button>

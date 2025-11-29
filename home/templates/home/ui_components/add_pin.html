@@ -1,58 +1,328 @@
+
+
 <div id="pinModal" class="modal hidden">
   <div class="modal-content">
+    <div class="form-header">
+      <div class="form-title">Drop a new pin 🌍</div>
+      <div class="form-subtitle">
+        Capture a moment from your journey — add a photo, caption, and location.
+      </div>
+    </div>
+
     <form id="pinForm" enctype="multipart/form-data">
       {% csrf_token %}
 
       <!-- Location fields -->
-      <label for="countryInput">Country</label>
-      <input
-        id="countryInput"
-        type="text"
-        name="country"
-        placeholder="United States"
-        required
-      />
+      <div class="field-group">
+        <label for="countryInput">Country</label>
+        <input
+          id="countryInput"
+          type="text"
+          name="country"
+          placeholder="United States"
+          required
+        />
+      </div>
 
-      <label for="stateInput">State / Region (optional)</label>
-      <input
-        id="stateInput"
-        type="text"
-        name="state"
-        placeholder="Georgia"
-      />
+      <div class="field-group">
+        <label for="stateInput">State / Region (optional)</label>
+        <input
+          id="stateInput"
+          type="text"
+          name="state"
+          placeholder="Georgia"
+        />
+      </div>
 
-      <label for="cityInput">City</label>
-      <input
-        id="cityInput"
-        type="text"
-        name="city"
-        placeholder="Atlanta"
-        required
-      />
+      <div class="field-group">
+        <label for="cityInput">City</label>
+        <input
+          id="cityInput"
+          type="text"
+          name="city"
+          placeholder="Atlanta"
+          required
+        />
+      </div>
 
       <!-- Caption -->
-      <label for="captionInput">Caption</label>
-      <input
-        id="captionInput"
-        type="text"
-        name="caption"
-        maxlength="280"
-        placeholder="Trip with friends 👋"
-      />
+      <div class="field-group">
+        <label for="captionInput">Caption</label>
+        <input
+          id="captionInput"
+          type="text"
+          name="caption"
+          maxlength="280"
+          placeholder="Trip with friends 👋"
+        />
+      </div>
 
       <!-- Image -->
-      <label for="imageInput">Image</label>
-      <input
-        id="imageInput"
-        type="file"
-        name="image"
-        accept="image/*"
-      />
+      <div class="field-group">
+        <label for="imageInput">Image</label>
+        <input
+          id="imageInput"
+          type="file"
+          name="image"
+          accept="image/*"
+        />
+      </div>
 
       <div class="modal-buttons">
-        <button type="submit">Save</button>
-        <button type="button" id="closeModal">Cancel</button>
+        <button type="button" id="closeModal" class="btn-secondary">Cancel</button>
+        <button type="submit" class="btn-primary">
+          <span class="pin-dot">📍</span>
+          Save pin
+        </button>
       </div>
     </form>
   </div>
 </div>
+<style>
+  #pinModal.modal {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    backdrop-filter: blur(10px);
+    background: radial-gradient(circle at top, rgba(45, 212, 191, 0.18), transparent 50%),
+                rgba(15, 23, 42, 0.75);
+  }
+
+  #pinModal.hidden {
+    display: none;
+  }
+
+  /* Modal card */
+  #pinModal .modal-content {
+    width: 100%;
+    max-width: 480px;
+    background: radial-gradient(circle at top left, rgba(34, 211, 238, 0.1), transparent 55%),
+                rgba(15, 23, 42, 0.98);
+    border-radius: 20px;
+    padding: 24px 24px 20px;
+    box-shadow:
+      0 24px 60px rgba(15, 23, 42, 0.65),
+      0 0 0 1px rgba(148, 163, 184, 0.18);
+    border: 1px solid rgba(45, 212, 191, 0.35);
+    color: #e2e8f0;
+    position: relative;
+  }
+
+  /* Small glowing accent at top */
+  #pinModal .modal-content::before {
+    content: "";
+    position: absolute;
+    top: -10px;
+    left: 32px;
+    width: 68px;
+    height: 4px;
+    border-radius: 9999px;
+    background: linear-gradient(90deg, #22d3ee, #14b8a6, #38bdf8);
+    box-shadow: 0 0 18px rgba(45, 212, 191, 0.9);
+  }
+
+  /* Form layout */
+  #pinModal #pinForm {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+  }
+
+  #pinModal .form-header {
+    margin-bottom: 12px;
+  }
+
+  #pinModal .form-title {
+    font-size: 1.15rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    color: #f9fafb;
+  }
+
+  #pinModal .form-subtitle {
+    font-size: 0.78rem;
+    color: #9ca3af;
+    margin-top: 4px;
+  }
+
+  /* Labels */
+  #pinModal label {
+    font-size: 0.8rem;
+    font-weight: 500;
+    color: #cbd5f5;
+    margin-bottom: 4px;
+    display: inline-block;
+  }
+
+  /* Group each field for spacing */
+  #pinModal .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  /* Base styling for all inputs in the pin modal
+     - box-sizing ensures padding + border don't affect width math
+     - min-height + padding give a roomy, vertically centered feel
+     - we explicitly set border-radius here so they look like soft pills */
+  #pinModal input[type="text"],
+  #pinModal input[type="file"] {
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 44px;              /* consistent height across browsers */
+    padding: 10px 14px;            /* more comfortable vertical + horizontal padding */
+    border-radius: 12px;
+    border: 1px solid rgba(148, 163, 184, 0.4);
+    background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.08), transparent 60%),
+                rgba(15, 23, 42, 0.9);
+    color: #e5e7eb;
+    font-size: 0.85rem;
+    line-height: 1.4;              /* avoid cramped text */
+    outline: none;
+    transition:
+      border-color 0.15s ease,
+      box-shadow 0.15s ease,
+      background 0.15s ease,
+      transform 0.08s ease;
+  }
+
+  #pinModal input::placeholder {
+    color: #6b7280;
+  }
+
+  #pinModal input[type="text"]:focus,
+  #pinModal input[type="file"]:focus {
+    border-color: #22d3ee;
+    box-shadow:
+      0 0 0 1px rgba(34, 211, 238, 0.6),
+      0 0 18px rgba(45, 212, 191, 0.6);
+    background: radial-gradient(circle at top left, rgba(45, 212, 191, 0.16), transparent 60%),
+                rgba(15, 23, 42, 0.98);
+    transform: translateY(-0.5px);
+  }
+
+  /* File input tweak
+     - keep same height as text inputs
+     - style the "Choose file" button to match our teal theme */
+  #pinModal input[type="file"] {
+    cursor: pointer;
+    font-size: 0.8rem;
+  }
+
+  /* Style the actual file-select button (modern browsers) */
+  #pinModal input[type="file"]::file-selector-button,
+  #pinModal input[type="file"]::-webkit-file-upload-button {
+    margin-right: 10px;
+    padding: 6px 12px;
+    border-radius: 9999px;
+    border: none;
+    background: linear-gradient(135deg, #0f766e, #14b8a6, #22d3ee);
+    color: #ecfeff;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition:
+      background 0.12s ease,
+      transform 0.08s ease,
+      box-shadow 0.12s ease;
+  }
+
+  #pinModal input[type="file"]::file-selector-button:hover,
+  #pinModal input[type="file"]::-webkit-file-upload-button:hover {
+    transform: translateY(-0.5px);
+    box-shadow: 0 10px 20px rgba(8, 47, 73, 0.55);
+    background: linear-gradient(135deg, #0d9488, #06b6d4, #38bdf8);
+  }
+
+  #pinModal input[type="file"]::file-selector-button:active,
+  #pinModal input[type="file"]::-webkit-file-upload-button:active {
+    transform: translateY(0);
+    box-shadow: 0 6px 12px rgba(8, 47, 73, 0.5);
+  }
+
+  /* Button row */
+  #pinModal .modal-buttons {
+    margin-top: 8px;
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+  }
+
+  /* Primary & secondary buttons */
+  #pinModal .btn-primary,
+  #pinModal .btn-secondary {
+    border-radius: 9999px;
+    padding: 7px 16px;
+    font-size: 0.8rem;
+    font-weight: 500;
+    border: none;
+    cursor: pointer;
+    transition:
+      transform 0.08s ease,
+      box-shadow 0.12s ease,
+      background 0.12s ease,
+      color 0.12s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  #pinModal .btn-primary {
+    background: linear-gradient(135deg, #0f766e, #14b8a6, #22d3ee);
+    box-shadow:
+      0 14px 30px rgba(8, 47, 73, 0.5),
+      0 0 0 1px rgba(45, 212, 191, 0.4);
+    color: #ecfeff;
+  }
+
+  #pinModal .btn-primary:hover {
+    transform: translateY(-1px);
+    box-shadow:
+      0 18px 36px rgba(8, 47, 73, 0.7),
+      0 0 0 1px rgba(125, 211, 252, 0.9);
+    background: linear-gradient(135deg, #0d9488, #06b6d4, #38bdf8);
+  }
+
+  #pinModal .btn-primary:active {
+    transform: translateY(0);
+    box-shadow:
+      0 10px 22px rgba(8, 47, 73, 0.55),
+      0 0 0 1px rgba(45, 212, 191, 0.5);
+  }
+
+  #pinModal .btn-secondary {
+    background: transparent;
+    border: 1px solid rgba(148, 163, 184, 0.5);
+    color: #cbd5f5;
+  }
+
+  #pinModal .btn-secondary:hover {
+    background: rgba(30, 64, 175, 0.45);
+    border-color: rgba(129, 140, 248, 0.9);
+    color: #e5e7eb;
+  }
+
+  #pinModal .btn-secondary:active {
+    transform: translateY(0.5px);
+  }
+
+  /* Small "pin" emoji accent on Save */
+  #pinModal .btn-primary .pin-dot {
+    font-size: 0.85rem;
+  }
+
+  /* Responsive tweaks */
+  @media (max-width: 640px) {
+    #pinModal .modal-content {
+      margin: 0 16px;
+      padding: 20px 18px 16px;
+    }
+
+    #pinModal .form-title {
+      font-size: 1.05rem;
+    }
+  }
+</style>
