@@ -1,0 +1,48 @@
+<div id="pinDetailsModal" class="modal hidden">
+  <div class="modal-content" style="width: 350px">
+    <img id="detailImage"
+         style="width: 100%; border-radius: 10px; margin-bottom: 10px" />
+    <p id="detailCaption"
+       style="margin-bottom: 10px; font-size: 14px"></p>
+    <p id="detailCoords"
+       style="font-size: 12px; color: #555; margin-bottom: 12px"></p>
+
+    <!-- ⭐ Reaction Bar -->
+    <div id="reactionBar"
+         style="display: flex; gap: 12px; justify-content: center;
+                margin-bottom: 12px; font-size: 22px; cursor: pointer;">
+      <span class="react-btn" data-emoji="like">👍</span>
+      <span class="react-btn" data-emoji="love">❤️</span>
+      <span class="react-btn" data-emoji="laugh">😂</span>
+      <span class="react-btn" data-emoji="wow">😮</span>
+    </div>
+
+    <!-- ⭐ Reaction Counts -->
+    <div id="reactionCounts"
+         style="display: flex; gap: 10px; justify-content: center;
+                font-size: 14px; color: #444;"></div>
+
+    <!-- ⭐ Actions Row (Close + optional Edit) -->
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px;">
+      <!-- Close is always visible -->
+      <button id="closePinDetails"
+              style="padding:6px 14px; border-radius:6px;
+                     border:1px solid #0f766e; background:#ecfdf5;
+                     color:#0f766e; font-size:13px; cursor:pointer;">
+        Close
+      </button>
+
+      <!-- Owner actions (Edit) - only shown for owner via JS -->
+      <div id="ownerActions" style="display:none;">
+        <button id="editPinButton"
+                class="edit-pin-btn"
+                data-edit-pin-id=""
+                style="padding:6px 14px; border:none; border-radius:6px;
+                       background:#16a34a; color:white; cursor:pointer;
+                       font-size:13px;">
+          Edit Pin
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

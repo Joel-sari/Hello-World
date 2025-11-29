@@ -1,0 +1,19 @@
+<div id="editPinModal" class="modal hidden">
+  <div class="modal-content" style="width: 320px">
+    <h3>Edit Pin</h3>
+
+    <form id="editPinForm" enctype="multipart/form-data">
+      {% csrf_token %}
+      <label>Caption</label>
+      <input type="text" name="caption" maxlength="280" />
+
+      <label style="margin-top: 10px">Replace Image (optional)</label>
+      <input type="file" name="image" accept="image/*" />
+
+      <div class="modal-buttons">
+        <button type="submit">Save</button>
+        <button type="button" id="cancelEditPin">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
