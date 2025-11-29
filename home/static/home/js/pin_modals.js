@@ -121,8 +121,16 @@ document.addEventListener("DOMContentLoaded", () => {
   //  3. Prefill the form with existing values
   //  4. Show the modal
   window.openEditModal = async function (pinId) {
+    // 🔹 Close pin details modal if it's open, so we don't overlap
+    const detailsModal = document.getElementById("pinDetailsModal");
+    if (detailsModal) {
+      detailsModal.classList.remove("show");
+    }
+    
     // GET existing pin data from Django
-    const res = await fetch(`${window.EDIT_PIN_BASE_URL}${pinId}/`);
+    const res = await fetch(`/api/pin/${pinId}/`, {
+      credentials: "same-origin",
+    });
 
     if (!res.ok) {
       alert("Could not load pin data.");
@@ -144,15 +152,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (lonInput) lonInput.value = pinData.lon;
     if (captionInput) captionInput.value = pinData.caption || "";
 
-    // Note: We can't prefill the <input type="file"> with an existing
-    // image path for security reasons. If you want to show a preview,
-    // you can add an <img> somewhere in the modal and set its src:
-    //
-    //   previewImg.src = pinData.imageUrl;
-    //
-    // and hide it when there's no image.
-
-    // Finally, show the modal
+    // Show the modal
     modal.classList.add("show");
   };
 });
