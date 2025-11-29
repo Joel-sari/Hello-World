@@ -2,13 +2,25 @@ from django.urls import path
 from django.contrib.auth import views as auth_views
 from . import views
 
+from django.conf import settings
+from django.conf.urls.static import static
+
 urlpatterns = [
     path("", views.index, name="index"),           # login + half-globe
     path("map/", views.map_view, name="map"),      # full globe (auth required)
     path("login/", views.login_view, name="login"),
     path("logout/", views.logout_view, name="logout"),
     path("signup/", views.signup_view, name="signup"),
+
+    # === API endpoints ===
     path("api/my-pins/", views.my_pins, name="my_pins"),
     path("api/search/", views.search_by_country, name="search_by_country"),
     path("api/add-pin/", views.add_pin, name="add_pin"),
-]
+
+    # 🔹 new: fetch a single pin for the details/edit modal
+    path("api/pin/<int:pin_id>/", views.get_pin, name="get_pin"),
+
+    # 🔹 new: save edits to a pin (caption/image)
+    path("api/edit-pin/<int:pin_id>/", views.edit_pin, name="edit_pin"),
+] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+

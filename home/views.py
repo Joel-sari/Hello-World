@@ -70,24 +70,25 @@ def map_view(request):
     # Full globe view (camera reveal happens on load)
     return render(request, "home/map.html")
 
-
+# home/views.py
 @login_required
 def my_pins(request):
     pins = Pin.objects.filter(user=request.user).values(
         "id", "latitude", "longitude", "caption", "image"
     )
-    # Convert to list and expand image URL if present
     data = []
+    username = request.user.username
+
     for p in pins:
         data.append({
             "id": p["id"],
             "lat": p["latitude"],
             "lon": p["longitude"],
             "caption": p["caption"] or "",
-            "imageUrl": request.build_absolute_uri(p["image"]) if p["image"] else None,
+            "imageUrl": request.build_absolute_uri("/media/" + p["image"]) if p["image"] else None,
+            "user": username,          # 👈 add this
         })
     return JsonResponse({"pins": data})
-
 
 # ------------------------------
 # Country search API
@@ -187,7 +188,9 @@ def search_by_country(request):
     })
 @login_required
 def get_pin(request, pin_id):
-    pin = get_object_or_404(Pin, id=pin_id, user=request.user)
+    # Allow viewing any pin; ownership is enforced in edit_pin
+    pin = get_object_or_404(Pin, id=pin_id)
+
     return JsonResponse({
         "id": pin.id,
         "lat": pin.latitude,

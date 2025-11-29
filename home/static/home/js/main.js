@@ -147,6 +147,17 @@ if (!popup) {
   renderer.domElement.parentElement?.appendChild(popup);
 }
 
+// Track when the mouse is over the popup so we don't hide it
+let overPopup = false;
+
+popup.addEventListener("mouseenter", () => {
+  overPopup = true;
+});
+
+popup.addEventListener("mouseleave", () => {
+  overPopup = false;
+});
+
 function latLonToVector3(lat, lon, radius) {
   const phi = (90 - lat) * (Math.PI / 180);
   const theta = (lon + 180) * (Math.PI / 180);
@@ -187,51 +198,63 @@ function createPinMesh(data) {
   m.lookAt(new THREE.Vector3(0, 0, 0));
   return m;
 }
-
 function showPopup(screenX, screenY, d) {
+  // If a bigger modal is open, don't show small popup
   if (
     document.getElementById("pinDetailsModal")?.classList.contains("show") ||
     document.getElementById("editPinModal")?.classList.contains("show")
   ) {
-    return; // skip hover popup entirely
+    return;
   }
-  
-  const canEdit =
-    d.isOwner ||
-    d.user === window.CURRENT_USER ||
-    typeof d.user === "undefined";
-  // NOTE: typeof d.user === "undefined" covers /api/my-pins/, which returns no 'user' field but are all yours
+
+  const username = d.user || "You";
+
+  const hintText = d.isOwner
+    ? "Click to view & edit details"
+    : "Click to view details";
 
   popup.innerHTML = `
-    <div style="display:flex;gap:10px;align-items:flex-start">
+    <div style="display:flex; gap:14px; align-items:flex-start; max-width:260px;">
       ${
         d.imageUrl
-          ? `<img src="${d.imageUrl}" style="width:84px;height:84px;object-fit:cover;border-radius:8px">`
+          ? `<img src="${d.imageUrl}"
+                 style="width:86px;height:86px;object-fit:cover;border-radius:10px;flex-shrink:0;">`
           : ""
       }
-      <div style="max-width:150px">
-        <div style="font-weight:700;margin-bottom:6px">
-          (${Number(d.lat).toFixed(2)}, ${Number(d.lon).toFixed(2)})
+      <div style="flex:1;">
+        <div style="font-weight:600;margin-bottom:4px;overflow-wrap:anywhere;">
+          ${d.caption || "No caption"}
         </div>
-        <div style="opacity:.9">${d.caption ? d.caption : "No caption"}</div>
-        ${
-          canEdit && d.id
-            ? `
-          <div style="margin-top:8px">
-            <button class="edit-pin-btn" data-edit-pin-id="${d.id}">Edit</button>
-          </div>`
-            : ""
-        }
+        <div style="font-size:12px;color:#cbd5e1;margin-bottom:4px;">
+          @${username}
+        </div>
+        <div style="font-size:11px;color:#94a3b8;">
+          ${hintText}
+        </div>
       </div>
-    </div>`;
-  popup.style.left = `${screenX + 12}px`;
-  popup.style.top = `${screenY + 12}px`;
+    </div>
+  `;
+
+  // Temporarily make visible to measure true size
   popup.style.display = "block";
+  popup.style.visibility = "hidden";
+
+  const rect = popup.getBoundingClientRect();
+  const w = rect.width;
+  const h = rect.height;
+
+  // Position centered ABOVE the pin
+  popup.style.left = `${screenX - w / 2}px`;
+  popup.style.top = `${screenY - h - 14}px`;
+
+  popup.style.visibility = "visible";
 }
+
 
 function hidePopup() {
   popup.style.display = "none";
 }
+
 
 renderer.domElement.addEventListener("mousemove", (e) => {
   const rect = renderer.domElement.getBoundingClientRect();
@@ -239,20 +262,12 @@ renderer.domElement.addEventListener("mousemove", (e) => {
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 });
 
+
 renderer.domElement.addEventListener("click", (e) => {
   if (!hoveredPin) return;
-  // If clicking a pin, switch to proper modal behavior
   const data = hoveredPin.userData;
-
-  // Owner → open EDIT modal
-  if (data.isOwner) {
-    openEditModal(data.id);
-  }
-
-  // NOT owner → open DETAILS modal
-  else {
-    openPinDetails(data);
-  }
+  // Always open details modal first
+  openPinDetails(data);
 });
 
 function openPinDetails(data) {
@@ -267,6 +282,20 @@ function openPinDetails(data) {
 
   // Save pin ID for reacting
   modal.dataset.pinId = data.id;
+
+  // Owner-only edit button
+  const ownerActions = document.getElementById("ownerActions");
+  const editBtn = document.getElementById("editPinButton");
+
+  if (ownerActions && editBtn) {
+    if (data.isOwner) {
+      ownerActions.style.display = "flex";
+      editBtn.dataset.editPinId = data.id;
+    } else {
+      ownerActions.style.display = "none";
+      editBtn.dataset.editPinId = "";
+    }
+  }
 
   // Load reaction summary
   loadReactions(data.id);
@@ -319,14 +348,26 @@ async function loadMyPins() {
 }
 
 window.addPinToGlobe = function (pin) {
-  pin.isOwner = true; // ensure hover UI sees it as yours
-  const mesh = createPinMesh(pin);
-  pinGroup.add(mesh);
+  pin.isOwner = true; // treat as your pin for hover/edit logic
 
-  // Smooth camera to new pin
+  // 1) Try to find an existing marker for this pin id
+  const existing = pinGroup.children.find(
+    (obj) => obj.userData && obj.userData.id === pin.id
+  );
+
+  if (existing) {
+    // ✅ EDIT MODE: update the existing marker in-place
+    existing.userData = pin;
+    existing.position.copy(latLonToVector3(pin.lat, pin.lon, PIN_SURFACE_R));
+  } else {
+    // ✅ ADD MODE: create a new marker
+    const mesh = createPinMesh(pin);
+    pinGroup.add(mesh);
+  }
+
+  // Optional: focus camera on this pin after save
   focusCameraOn(pin.lat, pin.lon);
 };
-
 // --- HOVER CHECK inside render loop ---
 function updatePinHover() {
 
@@ -353,8 +394,11 @@ function updatePinHover() {
       showPopup(sx, sy, hoveredPin.userData);
     }
   } else {
-    hoveredPin = null;
-    hidePopup();
+    // Only hide popup if we are not currently hovering over it
+    if (!overPopup) {
+      hoveredPin = null;
+      hidePopup();
+    }
   }
 }
 
