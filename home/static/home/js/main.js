@@ -878,8 +878,6 @@ document.addEventListener("DOMContentLoaded", () => {
       const [lat, lon] = data.center;
       moveCameraTo(lat, lon);
 
-      // Render the pins returned from that region
-      showPins(data.pins);
     } catch (err) {
       console.error("Search error:", err);
     }
@@ -903,7 +901,7 @@ document.addEventListener("click", (e) => {
 function moveCameraTo(lat, lon) {
   console.log(`Move camera to lat=${lat}, lon=${lon}`);
 
-  const target = latLonToVector3(lat, lon, EARTH_RADIUS * 2.5);
+  const target = latLonToVector3(lat, lon, EARTH_RADIUS * 1.4);
   const startPos = camera.position.clone();
   const start = performance.now();
   const duration = 1200;
