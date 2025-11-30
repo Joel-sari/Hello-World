@@ -26,6 +26,22 @@ document.addEventListener("DOMContentLoaded", () => {
   // Form element inside the modal that holds pin data
   const form = document.getElementById("pinForm");
 
+  // Title + subtitle text at the top of the modal
+  const titleEl = document.getElementById("pinModalTitle");
+  const subtitleEl = document.getElementById("pinModalSubtitle");
+
+  // Container where existing photos will be rendered as thumbnails
+  const existingPhotosContainer = document.getElementById("existingPhotos");
+
+  // Hidden input that will hold a comma-separated list of photo IDs to delete
+  const photosToDeleteInput = document.getElementById("photosToDelete");
+
+  // File input for adding new photos (supports multiple)
+  const photoFilesInput = form.querySelector('input[name="photos"]');
+
+  // Keep track of which existing photo IDs the user marked for removal
+  let photosMarkedForDelete = new Set();
+
   // ---------- STATE ----------
 
   // Tracks what the modal is doing:
@@ -51,6 +67,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       // Clear any previous values the form might have had
       form.reset();
+
+      // Reset multi-photo state when adding a new pin
+      photosMarkedForDelete.clear();
+      if (photosToDeleteInput) photosToDeleteInput.value = "";
+      if (existingPhotosContainer) existingPhotosContainer.innerHTML = "";
+      // Title + subtitle text at the top of the modal
+      const titleEl = document.getElementById("pinModalTitle");
+      const subtitleEl = document.getElementById("pinModalSubtitle");
 
       // Show the modal by REMOVING the `hidden` class.
       // CSS in add_pin.html uses:
@@ -145,7 +169,9 @@ document.addEventListener("DOMContentLoaded", () => {
     // 🔹 Close pin details modal if it's open, so we don't overlap
     const detailsModal = document.getElementById("pinDetailsModal");
     if (detailsModal) {
+      // fully hide the details modal so it doesn't block clicks
       detailsModal.classList.remove("show");
+      detailsModal.classList.add("hidden");
     }
 
     // GET existing pin data from Django
@@ -160,9 +186,98 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const pinData = await res.json();
 
+    // ---------- MULTI-PHOTO UI (EXISTING PHOTOS) ----------
+
+    // Clear previous edit state
+    photosMarkedForDelete.clear();
+    if (photosToDeleteInput) photosToDeleteInput.value = "";
+
+    // Reset any existing thumbnails in the container
+    if (existingPhotosContainer) {
+      existingPhotosContainer.innerHTML = "";
+
+      // pinData.photos should be an array like:
+      //   [ { id: 21, url: "..." }, { id: 22, url: "..." }, ... ]
+      const photos = pinData.photos || [];
+
+      photos.forEach((photo) => {
+        // Create a wrapper for each thumbnail + delete button
+        const wrapper = document.createElement("div");
+        wrapper.className = "existing-photo-thumb";
+        wrapper.style.position = "relative";
+        wrapper.style.display = "inline-block";
+        wrapper.style.marginRight = "8px";
+        wrapper.style.marginBottom = "8px";
+
+        // The thumbnail image
+        const img = document.createElement("img");
+        img.src = photo.url;
+        img.alt = "Existing pin photo";
+        img.style.width = "72px";
+        img.style.height = "72px";
+        img.style.objectFit = "cover";
+        img.style.borderRadius = "8px";
+        img.style.boxShadow = "0 4px 10px rgba(15,23,42,0.35)";
+
+        // Small "X" delete badge in the top-right corner
+        const delBtn = document.createElement("button");
+        delBtn.type = "button";
+        delBtn.textContent = "×";
+        delBtn.title = "Remove this photo";
+        delBtn.style.position = "absolute";
+        delBtn.style.top = "2px";
+        delBtn.style.right = "2px";
+        delBtn.style.width = "18px";
+        delBtn.style.height = "18px";
+        delBtn.style.borderRadius = "999px";
+        delBtn.style.border = "none";
+        delBtn.style.background = "rgba(15,23,42,0.85)";
+        delBtn.style.color = "#e5e7eb";
+        delBtn.style.cursor = "pointer";
+        delBtn.style.fontSize = "12px";
+        delBtn.style.display = "flex";
+        delBtn.style.alignItems = "center";
+        delBtn.style.justifyContent = "center";
+
+        // When clicked, mark this photo as "to delete" and remove from UI
+        delBtn.addEventListener("click", () => {
+          photosMarkedForDelete.add(photo.id);
+          wrapper.remove();
+
+          // Update hidden input value, e.g. "21,22"
+          if (photosToDeleteInput) {
+            photosToDeleteInput.value = Array.from(photosMarkedForDelete).join(
+              ","
+            );
+          }
+        });
+
+        wrapper.appendChild(img);
+        wrapper.appendChild(delBtn);
+        existingPhotosContainer.appendChild(wrapper);
+      });
+    }
+
+    // Optionally clear the file input so user can add new photos on each edit
+    if (photoFilesInput) {
+      photoFilesInput.value = "";
+    }
+
     // Switch modal to "edit" mode + remember which pin we're editing
     mode = "edit";
     currentPinId = pinId;
+    // Switch modal to "edit" mode + remember which pin we're editing
+    mode = "edit";
+    currentPinId = pinId;
+
+    // 🔹 Set header text for EDIT mode
+    if (titleEl) {
+      titleEl.textContent = "Edit your pin ✏️";
+    }
+    if (subtitleEl) {
+      subtitleEl.textContent =
+        "Update your photos, caption, or location for this memory.";
+    }
 
     // Prefill human-readable location fields instead of raw lat/lon
     const cityInput = form.querySelector('[name="city"]');

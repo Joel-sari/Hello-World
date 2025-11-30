@@ -57,16 +57,44 @@
         />
       </div>
 
-      <!-- Image -->
-      <div class="field-group">
-        <label for="imageInput">Image</label>
-        <input
-          id="imageInput"
-          type="file"
-          name="image"
-          accept="image/*"
-        />
+      <!-- Existing photos (EDIT mode only; JS fills this) -->
+      <div class="field-group" id="existingPhotos"
+           style="display:flex; flex-wrap:wrap; gap:8px; margin-top:6px;">
+        <!-- pin_modals.js will inject thumbnail <div>s here like:
+             <div class="photo-thumb">
+               <img src="..." />
+               <button class="remove-photo-btn">×</button>
+             </div>
+        -->
       </div>
+
+      <!-- Hidden input: IDs of photos marked for deletion in edit mode -->
+      <input
+        type="hidden"
+        id="photosToDelete"
+        name="photos_to_delete"
+      />
+
+      <!-- New photos (add or edit) -->
+      <div class="field-group">
+        <label for="photosInput">
+          Photos
+          <span style="font-weight:400; font-size:0.75rem; color:#9ca3af;">
+            (you can add several images per pin)
+          </span>
+        </label>
+        <input
+          id="photosInput"
+          type="file"
+          name="photos"
+          accept="image/*"
+          multiple
+        />
+        <small style="font-size: 0.75rem; color: #9ca3af;">
+          You can attach up to 5 photos per pin (existing + new).
+        </small>
+      </div>
+      
 
       <div class="modal-buttons">
         <button type="button" id="closeModal" class="btn-secondary">Cancel</button>
@@ -324,5 +352,46 @@
     #pinModal .form-title {
       font-size: 1.05rem;
     }
+  }
+    /* Tiny gallery inside the Add/Edit modal (existing photos) */
+  #pinModal #existingPhotos .photo-thumb {
+    position: relative;
+    width: 72px;
+    height: 72px;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 10px 20px rgba(15, 23, 42, 0.8);
+  }
+
+  #pinModal #existingPhotos .photo-thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+  }
+
+  #pinModal #existingPhotos .photo-thumb button.remove-photo-btn {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 20px;
+    height: 20px;
+    border-radius: 9999px;
+    border: none;
+    font-size: 13px;
+    background: rgba(15, 23, 42, 0.85);
+    color: #f9fafb;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.9);
+    transition: transform 0.08s ease, background 0.12s ease;
+  }
+
+  #pinModal #existingPhotos .photo-thumb button.remove-photo-btn:hover {
+    transform: translateY(-0.5px);
+    background: rgba(220, 38, 38, 0.9);
   }
 </style>

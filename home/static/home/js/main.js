@@ -372,40 +372,130 @@ renderer.domElement.addEventListener("click", (e) => {
 function openPinDetails(data) {
   const modal = document.getElementById("pinDetailsModal");
 
-  // ===============================
-  // NEW — Instagram-style Pin Details
-  // ===============================
+  // -------------------------------
+  // 1) Build full image list
+  //    (cover image + extra photos)
+  // -------------------------------
+  const allImages = [];
+  if (data.imageUrl) {
+    allImages.push(data.imageUrl);
+  }
+  if (Array.isArray(data.photos)) {
+    data.photos.forEach((item) => {
+      // Support both:
+      //   ["https://...", "https://..."]
+      //   [{ id: 1, url: "https://..." }, ...]
+      let url = null;
 
-  // Caption
+      if (typeof item === "string") {
+        url = item;
+      } else if (item && typeof item === "object" && "url" in item) {
+        url = item.url;
+      }
+
+      if (url) {
+        allImages.push(url);
+      }
+    });
+  }
+
+  const mainImg = document.getElementById("detailImage");
+  const thumbsRow = document.getElementById("detailThumbnails");
+
+  // -------------------------------
+  // 2) Caption text
+  // -------------------------------
   document.getElementById("detailCaption").textContent =
     data.caption || "No caption";
 
-  // Username (@handle)
+  // -------------------------------
+  // 3) Username (@handle)
+  // -------------------------------
   document.getElementById("detailUser").textContent = data.user
     ? `@${data.user}`
     : "@unknown";
 
-  // City + State + Country (fallbacks provided)
+  // -------------------------------
+  // 4) Pretty location (City, State, Country)
+  // -------------------------------
   const city = data.city || "";
   const state = data.state || "";
   const country = data.country || "";
 
   let prettyLocation = "";
-  if (city && state && country)
+  if (city && state && country) {
     prettyLocation = `${city}, ${state}, ${country}`;
-  else if (city && country) prettyLocation = `${city}, ${country}`;
-  else if (country) prettyLocation = `${country}`;
-  else prettyLocation = "Unknown location";
+  } else if (city && country) {
+    prettyLocation = `${city}, ${country}`;
+  } else if (country) {
+    prettyLocation = country;
+  } else {
+    prettyLocation = "Unknown location";
+  }
 
   document.getElementById("detailLocation").textContent = prettyLocation;
 
-  // Image
-  document.getElementById("detailImage").src = data.imageUrl || "";
+  // -------------------------------
+  // 5) Main image (big one on top)
+  // -------------------------------
+  if (allImages.length > 0) {
+    mainImg.src = allImages[0];
+    mainImg.style.display = "block";
+  } else {
+    mainImg.src = "";
+    mainImg.style.display = "none";
+  }
 
-  // Save pin ID for reacting
+  // -------------------------------
+  // 6) Thumbnails (small strip below)
+  // -------------------------------
+  if (thumbsRow) {
+    // Clear any previous thumbnails
+    thumbsRow.innerHTML = "";
+
+    // Only bother if there is at least 1 image
+    allImages.forEach((url, idx) => {
+      const thumb = document.createElement("img");
+      thumb.src = url;
+
+      // Basic thumbnail styling
+      thumb.style.width = "54px";
+      thumb.style.height = "54px";
+      thumb.style.objectFit = "cover";
+      thumb.style.borderRadius = "10px";
+      thumb.style.cursor = "pointer";
+      thumb.style.flexShrink = "0";
+      thumb.style.boxShadow =
+        idx === 0
+          ? "0 0 0 2px rgba(45,212,191,0.9)"
+          : "0 0 0 1px rgba(148,163,184,0.5)";
+      thumb.style.opacity = idx === 0 ? "1" : "0.6";
+
+      // When user clicks a thumbnail → swap main image
+      thumb.onclick = () => {
+        mainImg.src = url;
+
+        // Update highlight on all thumbs
+        thumbsRow.querySelectorAll("img").forEach((imgEl) => {
+          if (imgEl === thumb) {
+            imgEl.style.opacity = "1";
+            imgEl.style.boxShadow = "0 0 0 2px rgba(45,212,191,0.9)";
+          } else {
+            imgEl.style.opacity = "0.6";
+            imgEl.style.boxShadow = "0 0 0 1px rgba(148,163,184,0.5)";
+          }
+        });
+      };
+
+      thumbsRow.appendChild(thumb);
+    });
+  }
+
+  // -------------------------------
+  // 7) Save pin ID for reactions / edit
+  // -------------------------------
   modal.dataset.pinId = data.id;
 
-  // Owner-only edit button
   const ownerActions = document.getElementById("ownerActions");
   const editBtn = document.getElementById("editPinButton");
 
@@ -419,17 +509,16 @@ function openPinDetails(data) {
     }
   }
 
-  // Load reaction summary
+  // -------------------------------
+  // 8) Reactions (same as before)
+  // -------------------------------
   loadReactions(data.id);
 
+  // -------------------------------
+  // 9) Show modal
+  // -------------------------------
+  modal.classList.remove("hidden"); // ensure it's visible
   modal.classList.add("show");
-}
-
-const closeBtn = document.getElementById("closePinDetails");
-if (closeBtn) {
-  closeBtn.onclick = () => {
-    document.getElementById("pinDetailsModal").classList.remove("show");
-  };
 }
 
 async function loadReactions(pinId) {
@@ -863,6 +952,26 @@ function hideReactionPopup() {
   reactionPopup.style.pointerEvents = "none";
   popupVisible = false;
 }
+// ===============================
+// PIN DETAILS MODAL CLOSE BUTTON
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+  const detailsModal = document.getElementById("pinDetailsModal");
+  const closeDetailsBtn = document.getElementById("closePinDetails");
+
+  if (!detailsModal || !closeDetailsBtn) return;
+
+  closeDetailsBtn.addEventListener("click", () => {
+    // hide the details modal completely
+    detailsModal.classList.remove("show");
+    detailsModal.classList.add("hidden");
+
+    // also hide the reaction popup if it's open
+    if (typeof hideReactionPopup === "function") {
+      hideReactionPopup();
+    }
+  });
+});
 
 // Show on hover — desktop optimized
 reactionTrigger.addEventListener("mouseenter", showReactionPopup);
