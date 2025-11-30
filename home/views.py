@@ -7,11 +7,14 @@ from django.contrib import messages
 from django import forms
 from .forms import SignUpForm
 from django.http import JsonResponse
-from .models import Pin
+from .models import Pin, PinPhoto
 from .forms import PinForm
 import requests
 from django.conf import settings
+from datetime import datetime
 
+# Max number of photos per pin (1 cover + up to 4 extra = 5 total)
+MAX_PIN_PHOTOS = 5
 
 class LoginForm(forms.Form):
     username = forms.CharField(widget=forms.TextInput(attrs={"placeholder": "Username"}))
@@ -71,30 +74,47 @@ def logout_view(request):
 def map_view(request):
     # Full globe view (camera reveal happens on load)
     return render(request, "home/map.html")
-
-# home/views.py
 @login_required
 def my_pins(request):
-    pins = Pin.objects.filter(user=request.user).values(
-        "id", "latitude", "longitude", "caption", "image",
-        "city", "state", "country"
+    """
+    Return all pins for the current user, including:
+      - cover image (Pin.image)
+      - extra gallery images (PinPhoto, as URLs)
+    The frontend (main.js → loadMyPins) expects:
+      { "pins": [ { id, lat, lon, caption, imageUrl, photos[], ... }, ... ] }
+    """
+    pins_qs = (
+        Pin.objects.filter(user=request.user)
+        .select_related("user")
+        .prefetch_related("photos")
     )
 
-    username = request.user.username
     data = []
+    for pin in pins_qs:
+        cover_url = (
+            request.build_absolute_uri(pin.image.url) if pin.image else None
+        )
 
-    for p in pins:
+        # For map + pin details modal we only need URLs here
+        extra_photos = [
+            request.build_absolute_uri(photo.image.url)
+            for photo in pin.photos.all()
+        ]
+
+        photo_count = (1 if cover_url else 0) + len(extra_photos)
+
         data.append({
-            "id": p["id"],
-            "lat": p["latitude"],
-            "lon": p["longitude"],
-            "caption": p["caption"] or "",
-            "imageUrl": request.build_absolute_uri("/media/" + p["image"]) if p["image"] else None,
-            "user": username,
-            "city": p["city"],
-            "state": p["state"],
-            "country": p["country"],
-            "isOwner": True,
+            "id": pin.id,
+            "lat": pin.latitude,
+            "lon": pin.longitude,
+            "caption": pin.caption or "",
+            "imageUrl": cover_url,      # cover image
+            "photos": extra_photos,     # extra images (URLs)
+            "photoCount": photo_count,  # for "5 photos" indicator if you want
+            "user": pin.user.username,
+            "city": pin.city,
+            "state": pin.state,
+            "country": pin.country,
         })
 
     return JsonResponse({"pins": data})
@@ -191,17 +211,43 @@ def search_location(request):
     })
 @login_required
 def get_pin(request, pin_id):
-    # Allow viewing any pin; ownership is enforced in edit_pin
-    pin = get_object_or_404(Pin, id=pin_id)
+    """
+    Return full details for a single pin, including:
+      - coordinates
+      - caption
+      - cover image
+      - extra gallery photos
+      - owner + location info
+    Used by the pin details modal and (later) a full-screen gallery.
+    """
+    pin = get_object_or_404(
+        Pin.objects.select_related("user").prefetch_related("photos"),
+        id=pin_id
+    )
+
+    cover_url = (
+        request.build_absolute_uri(pin.image.url) if pin.image else None
+    )
+    extra_photos = [
+    {
+        "id": photo.id,
+        "url": request.build_absolute_uri(photo.image.url),
+    }
+    for photo in pin.photos.all()
+    ]
+    photo_count = (1 if cover_url else 0) + len(extra_photos)
 
     return JsonResponse({
         "id": pin.id,
         "lat": pin.latitude,
         "lon": pin.longitude,
         "caption": pin.caption or "",
-        "imageUrl": request.build_absolute_uri(pin.image.url) if pin.image else None,
+        "imageUrl": cover_url,
+        "photos": extra_photos,       # <-- now objects
+        "photoCount": photo_count,
         "user": pin.user.username,
         "city": pin.city,
+        "state": pin.state,
         "country": pin.country,
     })
 
@@ -220,7 +266,13 @@ def add_pin(request):
             )
             if not geo:
                 return JsonResponse(
-                    {"errors": {"location": ["Could not find that location. Try a more specific city/state/country."]}},
+                    {
+                        "errors": {
+                            "location": [
+                                "Could not find that location. Try a more specific city/state/country."
+                            ]
+                        }
+                    },
                     status=400,
                 )
 
@@ -230,15 +282,51 @@ def add_pin(request):
             temp_pin.user = request.user
             temp_pin.save()
 
+      
+
+            # NEW: handle extra gallery photos
+            # -----------------------------
+            # Frontend sends all extra images in the "photos" field
+            extra_files = request.FILES.getlist("photos")
+
+            # How many photos this pin already has (for new pins, it's 0)
+            current_count = temp_pin.photos.count()
+            remaining_slots = MAX_PIN_PHOTOS - current_count
+            if remaining_slots < 0:
+                remaining_slots = 0  # safety guard
+
+            # Create PinPhoto rows for up to the remaining slots
+            for f in extra_files[:remaining_slots]:
+                PinPhoto.objects.create(pin=temp_pin, image=f)
+
+            # Build list of extra photo URLs for JSON response
+            extra_photos = [
+                {
+                    "id": photo.id,
+                    "url": request.build_absolute_uri(photo.image.url),
+                }
+                for photo in temp_pin.photos.all()
+            ]
+            cover_url = (
+                request.build_absolute_uri(temp_pin.image.url)
+                if temp_pin.image
+                else None
+            )
+            photo_count = (1 if cover_url else 0) + len(extra_photos)
+
             return JsonResponse({
                 "id": temp_pin.id,
                 "lat": temp_pin.latitude,
                 "lon": temp_pin.longitude,
                 "caption": temp_pin.caption,
-                "imageUrl": request.build_absolute_uri(temp_pin.image.url) if temp_pin.image else None,
+                "imageUrl": cover_url,
+                "photos": extra_photos,
+                "photoCount": photo_count,
                 "city": temp_pin.city,
                 "state": temp_pin.state,
                 "country": temp_pin.country,
+                "user": temp_pin.user.username,
+                "isOwner": True,
             })
 
         return JsonResponse({"errors": form.errors}, status=400)
@@ -288,13 +376,56 @@ def edit_pin(request, pin_id):
             updated_pin.longitude = lon
 
         updated_pin.save()
+        # -----------------------------
+        # Handle deletions for existing photos (if any)
+        # -----------------------------
+        to_delete_raw = request.POST.get("photos_to_delete", "").strip()
+        if to_delete_raw:
+            ids = [
+                int(x)
+                for x in to_delete_raw.split(",")
+                if x.strip().isdigit()
+            ]
+            if ids:
+                PinPhoto.objects.filter(pin=updated_pin, id__in=ids).delete()
+
+        # -----------------------------
+        # NEW: handle extra images on edit
+        # -----------------------------
+        extra_files = request.FILES.getlist("photos")
+
+        # Current total photos = cover (if any) + extra PinPhoto rows
+        current_count = (1 if updated_pin.image else 0) + updated_pin.photos.count()
+        remaining_slots = MAX_PIN_PHOTOS - current_count
+
+        if remaining_slots < 0:
+            remaining_slots = 0
+
+        for f in extra_files[:remaining_slots]:
+            PinPhoto.objects.create(pin=updated_pin, image=f)
+
+        
+
+        # Recompute URLs + counts for response
+        cover_url = (
+            request.build_absolute_uri(updated_pin.image.url)
+            if updated_pin.image
+            else None
+        )
+        extra_photos = [
+            request.build_absolute_uri(photo.image.url)
+            for photo in updated_pin.photos.all()
+        ]
+        photo_count = (1 if cover_url else 0) + len(extra_photos)
 
         return JsonResponse({
             "id": updated_pin.id,
             "lat": updated_pin.latitude,
             "lon": updated_pin.longitude,
             "caption": updated_pin.caption or "",
-            "imageUrl": request.build_absolute_uri(updated_pin.image.url) if updated_pin.image else None,
+            "imageUrl": cover_url,
+            "photos": extra_photos,
+            "photoCount": photo_count,
             "city": updated_pin.city,
             "state": updated_pin.state,
             "country": updated_pin.country,
@@ -304,3 +435,77 @@ def edit_pin(request, pin_id):
         })
 
     return JsonResponse({"errors": form.errors}, status=400)
+
+# NOW WE WILL FOCUS ON THE GALLERY VIEW!
+@login_required
+def gallery_view(request):
+    """
+    Render the photo gallery page.
+    The page itself will fetch photo data via /api/my-photos/.
+    """
+    return render(request, "home/gallery.html")
+
+@login_required
+def my_photos(request):
+    """
+    Return ALL photos for the current user (covers + PinPhoto extras),
+    flattened into a single list so the frontend can show them in a grid.
+
+    Response shape:
+      {
+        "photos": [
+          {
+            "id": <photo_id or "pin-<id>" for cover>,
+            "pin_id": <pin id>,
+            "imageUrl": "<absolute url>",
+            "caption": "...",
+            "city": "...",
+            "country": "...",
+            "createdAt": "2025-11-29T12:34:56Z"
+          },
+          ...
+        ]
+      }
+    """
+    # 1) Get all pins for this user
+    pins = (
+        Pin.objects.filter(user=request.user)
+        .select_related("user")
+        .prefetch_related("photos")
+    )
+
+    photos_payload = []
+
+    for pin in pins:
+        # Cover image as a "photo"
+        if pin.image:
+            photos_payload.append({
+                "id": f"cover-{pin.id}",
+                "pin_id": pin.id,
+                "imageUrl": request.build_absolute_uri(pin.image.url),
+                "caption": pin.caption or "",
+                "city": pin.city,
+                "country": pin.country,
+                # If Pin has created_at, use that; otherwise reuse pin.id or something
+                "createdAt": getattr(pin, "created_at", None),
+            })
+
+        # Extra gallery images
+        for photo in pin.photos.all():
+            photos_payload.append({
+                "id": photo.id,
+                "pin_id": pin.id,
+                "imageUrl": request.build_absolute_uri(photo.image.url),
+                "caption": pin.caption or "",
+                "city": pin.city,
+                "country": pin.country,
+                "createdAt": photo.created_at,
+            })
+
+    # Optional: sort newest → oldest by createdAt
+    photos_payload.sort(
+        key=lambda p: p["createdAt"] or datetime.min,
+        reverse=True,
+    )
+
+    return JsonResponse({"photos": photos_payload})
