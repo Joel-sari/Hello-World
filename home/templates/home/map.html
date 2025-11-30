@@ -45,10 +45,15 @@
         <div class="profile-dropdown-name">{{ user.username }}</div>
         <div class="profile-dropdown-handle">@{{ user.username }}</div>
       </div>
+      <button class="profile-dropdown-item" id="view-gallery-link"
+              onclick="window.location.href='{% url 'gallery' %}'">
+        View Gallery
+      </button>
       <button class="profile-dropdown-item profile-dropdown-item--danger"
               onclick="window.location.href='{% url 'logout' %}'">
         Log Out
       </button>
+      
     </div>
   </div>
 </div>

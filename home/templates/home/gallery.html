@@ -1,0 +1,98 @@
+{% extends "home/base.html" %}
+{% load static %}
+
+{% block content %}
+<link rel="stylesheet" href="{% static 'home/css/gallery.css' %}">
+<body class="gallery-body">
+  <div class="gallery-page">
+    <a href="{% url 'map' %}" class="back-link">← Back to globe</a>
+    <!-- Top bar -->
+    <header class="gallery-header">
+      <div class="gh-left">
+        <h1>Your Photo Gallery</h1>
+        <p>All your memories from the Hello World globe.</p>
+      </div>
+
+      <div class="gh-right">
+        <!-- Country filter -->
+        <div class="gh-filter-group">
+          <label for="countryFilter">Country</label>
+          <select id="countryFilter">
+            <option value="">All countries</option>
+          </select>
+        </div>
+
+        <!-- Text search: caption / city / country -->
+        <div class="gh-filter-group">
+          <label for="captionSearch">Search</label>
+          <input
+            id="captionSearch"
+            type="text"
+            placeholder="Caption or place"
+          />
+        </div>
+
+        <!-- Date range: from -->
+        <div class="gh-filter-group">
+          <label for="dateFrom">From</label>
+          <input
+            id="dateFrom"
+            type="date"
+          />
+        </div>
+
+        <!-- Date range: to -->
+        <div class="gh-filter-group">
+          <label for="dateTo">To</label>
+          <input
+            id="dateTo"
+            type="date"
+          />
+        </div>
+
+        <!-- Sort order -->
+        <div class="gh-filter-group">
+          <label for="sortOrder">Sort</label>
+          <select id="sortOrder">
+            <option value="newest">Newest first</option>
+            <option value="oldest">Oldest first</option>
+            <option value="caption-asc">Caption A–Z</option>
+            <option value="caption-desc">Caption Z–A</option>
+          </select>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main grid -->
+    <main class="gallery-grid" id="galleryGrid">
+      <!-- JS will insert photo cards here -->
+    </main>
+      <!-- Fullscreen lightbox overlay for viewing a single photo -->
+    <div id="photoLightbox" class="gallery-lightbox">
+      <div class="lightbox-panel">
+        <!-- Top row: close button -->
+        <button id="lightboxCloseBtn" class="lightbox-close-btn" type="button">
+          ✕
+        </button>
+
+        <!-- Image area -->
+        <div class="lightbox-image-wrap">
+          <img id="lightboxImg" src="" alt="Selected photo">
+        </div>
+
+        <!-- Meta info (caption, location, date) -->
+        <div class="lightbox-meta">
+          <div id="lightboxCaption" class="lightbox-caption"></div>
+
+          <div class="lightbox-meta-row">
+            <span id="lightboxLocation" class="lightbox-location"></span>
+            <span id="lightboxDate" class="lightbox-date"></span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</body>
+
+<script src="{% static 'home/js/gallery.js' %}"></script>
+{% endblock %}

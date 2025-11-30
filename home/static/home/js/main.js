@@ -13,12 +13,15 @@ import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.m
 // --- MODE ---
 const MODE = document.body.classList.contains("mode-map") ? "map" : "login";
 
+// Treat narrow viewports as mobile for camera layout
+const IS_MOBILE = window.innerWidth <= 768; // px breakpoint
+
 
 // --- SCENE / CAMERA / RENDERER ---
 const scene = new THREE.Scene();
 
 const camera = new THREE.PerspectiveCamera(
-  75,
+  IS_MOBILE ? 65 : 75, // a bit narrower FOV on mobile so globe fits better
   window.innerWidth / window.innerHeight,
   0.1,
   1000
@@ -146,12 +149,30 @@ scene.add(cloudsGroup);
 
 // --- CAMERA COMPOSITION ---
 if (MODE === "login") {
-  camera.position.set(0, 1.5, 6);
+  // Start a bit farther back on mobile so the globe is fully visible
+  if (IS_MOBILE) {
+    camera.position.set(0, 2.1, 7.2);
+  } else {
+    camera.position.set(0, 1.5, 6);
+  }
   camera.lookAt(earth.position);
 } else {
-  camera.position.set(0, 1.5, 6);
+  // Map mode starts from same base, then revealMap animates in
+  if (IS_MOBILE) {
+    camera.position.set(0, 2.1, 7.2);
+  } else {
+    camera.position.set(0, 1.5, 6);
+  }
   camera.lookAt(earth.position);
-  requestAnimationFrame(() => revealMap({ toY: 0, toZ: 5.0, ms: 1000 }));
+
+  // On mobile, stop the camera a bit farther away so the globe isn't too zoomed in
+  requestAnimationFrame(() =>
+    revealMap({
+      toY: IS_MOBILE ? 0.2 : 0,
+      toZ: IS_MOBILE ? 6.4 : 5.0,
+      ms: 1000,
+    })
+  );
 }
 
 // --- ANIMATION STATE ---
@@ -1012,5 +1033,24 @@ document.querySelectorAll(".popup-react").forEach((emoji) => {
     });
 
     if (res.ok) loadReactions(pinId);
+  });
+});
+
+// Smooth transition when going to Gallery
+document.addEventListener("DOMContentLoaded", () => {
+  const viewGalleryLink = document.getElementById("view-gallery-link");
+  if (!viewGalleryLink) return;
+
+  viewGalleryLink.addEventListener("click", (e) => {
+    e.preventDefault();
+    const href = viewGalleryLink.getAttribute("href");
+
+    // Add fade-out class to body
+    document.body.classList.add("page-fade-out");
+
+    // After animation finishes, actually navigate
+    setTimeout(() => {
+      window.location.href = href;
+    }, 230); // slightly longer than the 220ms transition
   });
 });

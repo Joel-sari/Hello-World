@@ -7,6 +7,14 @@ body {
   background: linear-gradient(180deg, #0ea5e9 0%, #e0f2fe 100%);
   min-height: 100vh;
 }
+/* Smooth page fade-out when navigating away (e.g. to Gallery) */
+body.page-fade-out {
+  opacity: 0;
+  filter: blur(2px);
+  transition:
+    opacity 220ms ease-out,
+    filter 220ms ease-out;
+}
 
 /* Fullscreen canvas behind all UI */
 canvas#bg {
