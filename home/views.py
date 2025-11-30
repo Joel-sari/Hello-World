@@ -11,6 +11,7 @@ from .models import Pin, PinPhoto
 from .forms import PinForm
 import requests
 from django.conf import settings
+from datetime import datetime
 
 # Max number of photos per pin (1 cover + up to 4 extra = 5 total)
 MAX_PIN_PHOTOS = 5
@@ -434,3 +435,77 @@ def edit_pin(request, pin_id):
         })
 
     return JsonResponse({"errors": form.errors}, status=400)
+
+# NOW WE WILL FOCUS ON THE GALLERY VIEW!
+@login_required
+def gallery_view(request):
+    """
+    Render the photo gallery page.
+    The page itself will fetch photo data via /api/my-photos/.
+    """
+    return render(request, "home/gallery.html")
+
+@login_required
+def my_photos(request):
+    """
+    Return ALL photos for the current user (covers + PinPhoto extras),
+    flattened into a single list so the frontend can show them in a grid.
+
+    Response shape:
+      {
+        "photos": [
+          {
+            "id": <photo_id or "pin-<id>" for cover>,
+            "pin_id": <pin id>,
+            "imageUrl": "<absolute url>",
+            "caption": "...",
+            "city": "...",
+            "country": "...",
+            "createdAt": "2025-11-29T12:34:56Z"
+          },
+          ...
+        ]
+      }
+    """
+    # 1) Get all pins for this user
+    pins = (
+        Pin.objects.filter(user=request.user)
+        .select_related("user")
+        .prefetch_related("photos")
+    )
+
+    photos_payload = []
+
+    for pin in pins:
+        # Cover image as a "photo"
+        if pin.image:
+            photos_payload.append({
+                "id": f"cover-{pin.id}",
+                "pin_id": pin.id,
+                "imageUrl": request.build_absolute_uri(pin.image.url),
+                "caption": pin.caption or "",
+                "city": pin.city,
+                "country": pin.country,
+                # If Pin has created_at, use that; otherwise reuse pin.id or something
+                "createdAt": getattr(pin, "created_at", None),
+            })
+
+        # Extra gallery images
+        for photo in pin.photos.all():
+            photos_payload.append({
+                "id": photo.id,
+                "pin_id": pin.id,
+                "imageUrl": request.build_absolute_uri(photo.image.url),
+                "caption": pin.caption or "",
+                "city": pin.city,
+                "country": pin.country,
+                "createdAt": photo.created_at,
+            })
+
+    # Optional: sort newest → oldest by createdAt
+    photos_payload.sort(
+        key=lambda p: p["createdAt"] or datetime.min,
+        reverse=True,
+    )
+
+    return JsonResponse({"photos": photos_payload})

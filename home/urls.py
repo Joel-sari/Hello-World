@@ -21,7 +21,12 @@ urlpatterns = [
     # 🔹 new: fetch a single pin for the details/edit modal
     path("api/pin/<int:pin_id>/", views.get_pin, name="get_pin"),
 
+    # Gallery view
+    path("gallery/", views.gallery_view, name="gallery"),
+    path("api/my-photos/", views.my_photos, name="my_photos"),
+
     # 🔹 new: save edits to a pin (caption/image)
     path("api/edit-pin/<int:pin_id>/", views.edit_pin, name="edit_pin"),
-] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
+]
 
+urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

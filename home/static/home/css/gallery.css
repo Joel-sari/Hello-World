@@ -1,0 +1,417 @@
+/* home/static/home/css/gallery.css */
+
+/* Page background + layout */
+.gallery-page {
+  min-height: 100vh;
+  padding: 32px 40px 40px;
+  background: radial-gradient(circle at top, #0f766e 0%, #020617 38%, #020617 100%);
+  color: #e5e7eb;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Inter", sans-serif;
+}
+
+/* Top bar */
+.gallery-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 28px;
+  border-bottom: 1px solid rgba(148, 163, 184, 0.35);
+  padding-bottom: 14px;
+}
+
+.gallery-header h1 {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  margin: 0;
+  color: #f9fafb;
+}
+
+.gallery-header p {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #9ca3af;
+}
+
+.gh-left {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Country filter dropdown */
+.gh-right {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 10px 16px;
+}
+
+.gh-filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 11px;
+}
+
+.gh-filter-group label {
+  color: #9ca3af;
+  letter-spacing: 0.02em;
+}
+
+.gh-right select,
+.gh-right input[type="text"],
+.gh-right input[type="date"] {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e5e7eb;
+  padding: 6px 12px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+}
+
+.gh-right input[type="text"],
+.gh-right input[type="date"] {
+  cursor: text;
+}
+
+.gh-right select:hover,
+.gh-right input[type="text"]:focus,
+.gh-right input[type="date"]:focus {
+  border-color: rgba(45, 212, 191, 0.9);
+}
+
+#countryFilter {
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e5e7eb;
+  padding: 6px 12px;
+  font-size: 12px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: linear-gradient(45deg, #22c55e 0, #22c55e 50%, transparent 50%),
+    linear-gradient(135deg, transparent 50%, #22c55e 50%, #22c55e 100%);
+  background-position: calc(100% - 14px) 9px, calc(100% - 9px) 9px;
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+}
+
+#countryFilter:hover {
+  border-color: rgba(45, 212, 191, 0.9);
+}
+
+/* Responsive grid similar to iOS Photos */
+.gallery-grid {
+  margin-top: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+/* Individual photo card */
+.gallery-card {
+  background: radial-gradient(circle at top, rgba(15, 23, 42, 0.98), rgba(15, 23, 42, 0.98));
+  border-radius: 18px;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.9);
+  cursor: pointer;
+  transition: transform 0.16s ease, box-shadow 0.16s ease, border-color 0.16s ease;
+  position: relative;
+}
+
+.gallery-card:hover {
+  transform: translateY(-4px) scale(1.01);
+  box-shadow: 0 22px 55px rgba(15, 23, 42, 1);
+  border-color: rgba(45, 212, 191, 0.85);
+}
+
+/* Image in the card */
+.gallery-card img {
+  width: 100%;
+  aspect-ratio: 4 / 5;      /* vertical-ish tile, like iOS photos */
+  object-fit: cover;
+  display: block;
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+/* Card body */
+.gallery-card-body {
+  padding: 10px 12px 12px;
+}
+
+/* Caption text */
+.gallery-card-caption {
+  font-size: 14px;
+  font-weight: 500;
+  color: #e5e7eb;
+  margin-bottom: 4px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Meta row: location (left) + date (right) */
+.gallery-card-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.gallery-card-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.gallery-card-location::before {
+  content: "📍";
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.gallery-card-date {
+  font-size: 11px;
+  color: #a5b4fc;
+}
+
+/* Empty state text */
+.gallery-grid > p {
+  grid-column: 1 / -1;
+  text-align: center;
+  color: #9ca3af;
+  font-size: 13px;
+  margin-top: 40px;
+}
+
+/* 1–2 columns on narrow screens (phones) – this is just explicit */
+@media (max-width: 640px) {
+  /* Tighter padding on small screens */
+  .gallery-page {
+    padding: 20px 16px 24px;
+  }
+
+  /* Stack title and filters vertically */
+  .gallery-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+
+  .gallery-header h1 {
+    font-size: 22px;
+  }
+
+  /* Filters: 2-column grid on mobile */
+  .gh-right {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px 12px;
+  }
+
+  .gh-filter-group {
+    width: 100%;
+  }
+
+  /* Slightly tighter top margin + 2-column grid for cards */
+  .gallery-grid {
+    margin-top: 16px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .gallery-card img {
+    height: auto;
+  }
+}
+
+/* 3 columns on small laptops / tablets */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .gallery-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* 4 columns on normal laptops */
+@media (min-width: 1024px) and (max-width: 1439px) {
+  .gallery-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* 5 columns on big screens */
+@media (min-width: 1440px) {
+  .gallery-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+}
+/* ================================
+   Lightbox overlay for gallery
+   When a user clicks a photo tile
+   ================================ */
+
+.gallery-lightbox {
+  position: fixed;
+  inset: 0;                       /* top:0; right:0; bottom:0; left:0 */
+  z-index: 60;
+  display: none;                  /* turned on by adding .show */
+  align-items: center;
+  justify-content: center;
+  background: radial-gradient(
+      circle at top,
+      rgba(15, 23, 42, 0.95),
+      rgba(15, 23, 42, 0.98)
+    );
+  backdrop-filter: blur(16px) saturate(130%);
+}
+
+/* when JS adds this class, the lightbox appears */
+.gallery-lightbox.show {
+  display: flex;
+}
+
+.lightbox-panel {
+  max-width: 960px;
+  width: min(90vw, 960px);
+  max-height: min(88vh, 720px);
+  background: rgba(15, 23, 42, 0.98);
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  box-shadow: 0 30px 80px rgba(15, 23, 42, 1);
+  padding: 18px 20px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Close button ("X") in the corner */
+.lightbox-close-btn {
+  align-self: flex-end;
+  border: none;
+  background: rgba(15, 23, 42, 0.92);
+  color: #e5e7eb;
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+  box-shadow: 0 5px 14px rgba(15, 23, 42, 0.8);
+  transition: background 0.15s ease, transform 0.15s ease;
+}
+
+.lightbox-close-btn:hover {
+  background: #0f766e;
+  transform: translateY(-1px);
+}
+
+/* Image section – large and centered */
+.lightbox-image-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 18px;
+  overflow: hidden;
+  background: radial-gradient(circle at top, #020617, #020617);
+}
+
+.lightbox-image-wrap img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  display: block;
+}
+
+/* Meta info under the image */
+.lightbox-meta {
+  margin-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-family: system-ui, -apple-system, Inter, sans-serif;
+}
+
+.lightbox-caption {
+  font-size: 15px;
+  font-weight: 500;
+  color: #e5e7eb;
+}
+
+.lightbox-meta-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+  color: #9ca3af;
+}
+
+.lightbox-location::before {
+  content: "📍";
+  margin-right: 4px;
+  opacity: 0.9;
+}
+
+.lightbox-date {
+  color: #a5b4fc;
+}
+
+/* Slightly tighter layout on small screens */
+@media (max-width: 640px) {
+  .lightbox-panel {
+    width: 94vw;
+    padding: 14px 14px 12px;
+    border-radius: 18px;
+  }
+}
+
+/*Styling for going back page: */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: #e5e7eb;
+  text-decoration: none;
+  padding: 4px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(148, 163, 184, 0.6);
+  background: rgba(15, 23, 42, 0.85);
+  margin-bottom: 16px;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.9);
+  transition: background 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.back-link:hover {
+  background: #0f766e;
+  box-shadow: 0 16px 32px rgba(15, 23, 42, 1);
+  transform: translateY(-1px);
+} 
+
+/* Initial state: slightly lower + transparent */
+.gallery-page {
+  opacity: 0;
+  transform: translateY(8px);
+  animation: galleryFadeIn 260ms ease-out forwards;
+}
+
+@keyframes galleryFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
