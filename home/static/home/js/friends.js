@@ -124,7 +124,7 @@ function renderFriendsList(list) {
     const row = document.createElement("div");
     row.style.cssText = `
       display:flex;
-      justify-content:flex-start;
+      justify-content:space-between;
       align-items:center;
       padding:8px 12px;
       background:rgba(30,41,59,0.75);
@@ -137,30 +137,51 @@ function renderFriendsList(list) {
       <div style="display:flex; flex-direction:column;">
         <span style="font-weight:500;">@${friend.username}</span>
 
-        <button
-          class="view-pins-btn"
-          style="
-            margin-top:4px;
-            font-size:11px;
-            padding:2px 6px;
-            width:fit-content;
-            background:#1e293b;
-            color:#7dd3fc;
-            border:1px solid #334155;
-            border-radius:6px;
-            cursor:not-allowed;
-            opacity:0.7;
-          "
-          disabled
-        >
-          View Pins
-        </button>
+        <div style="display:flex; gap:6px; margin-top:4px;">
+          <button
+            class="view-pins-btn"
+            disabled
+            style="
+              font-size:11px;
+              padding:2px 6px;
+              background:#1e293b;
+              color:#7dd3fc;
+              border:1px solid #334155;
+              border-radius:6px;
+              opacity:0.7;
+              cursor:not-allowed;
+            "
+          >
+            View Pins
+          </button>
+
+          <button
+            class="unfriend-btn"
+            data-id="${friend.friendship_id}"
+            style="
+              font-size:11px;
+              padding:2px 6px;
+              background:#dc2626;
+              color:white;
+              border:none;
+              border-radius:6px;
+              cursor:pointer;
+            "
+          >
+            Unfriend
+          </button>
+        </div>
       </div>
     `;
 
     friendsListContainer.appendChild(row);
   });
+
+  document.querySelectorAll(".unfriend-btn").forEach(btn => {
+    btn.addEventListener("click", () => unfriend(btn.dataset.id));
+  });
 }
+
 
 
 // ===============================
@@ -187,6 +208,19 @@ async function handleReject(id) {
   });
 
   loadFriendData();
+}
+
+async function unfriend(id) {
+  try {
+    await fetch(`/api/friend-remove/${id}/`, {
+      method: "POST",
+      headers: { "X-CSRFToken": getCSRF() },
+    });
+
+    loadFriendData(); // refresh modal
+  } catch (err) {
+    console.error("Failed to unfriend:", err);
+  }
 }
 
 
