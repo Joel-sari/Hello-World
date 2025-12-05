@@ -45,14 +45,22 @@
         <div class="profile-dropdown-name">{{ user.username }}</div>
         <div class="profile-dropdown-handle">@{{ user.username }}</div>
       </div>
-      <button class="profile-dropdown-item" id="view-gallery-link"
-              onclick="window.location.href='{% url 'gallery' %}'">
+
+    <!-- NEW FRIENDS BUTTON -->
+    <button class="profile-dropdown-item" id="friends-link">
+        Friends <span id="friends-count-pill" style="color:#38bdf8;"></span>
+    </button>
+
+    <button class="profile-dropdown-item" id="view-gallery-link"
+            onclick="window.location.href='{% url 'gallery' %}'">
         View Gallery
-      </button>
-      <button class="profile-dropdown-item profile-dropdown-item--danger"
-              onclick="window.location.href='{% url 'logout' %}'">
+    </button>
+
+    <button class="profile-dropdown-item profile-dropdown-item--danger"
+            onclick="window.location.href='{% url 'logout' %}'">
         Log Out
-      </button>
+    </button>
+
       
     </div>
   </div>
@@ -69,6 +77,9 @@
 
 {# ③ Edit overlay (owner only) #}
 {% include "home/ui_components/edit_pin.html" %}
+
+{# ④ Friends overlay #}
+{% include "home/ui_components/friends.html" %}
 
 <style>
   .modal {
