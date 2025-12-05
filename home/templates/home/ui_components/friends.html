@@ -38,7 +38,21 @@
     </div>
 
     <!-- Two Columns -->
-    <div style="display:flex; gap:24px;">
+    <style>
+    /* Responsive two-column → single-column collapse */
+    @media (max-width: 700px) {
+        #friendsModal .friends-flex {
+        flex-direction: column !important;
+        }
+    }
+    </style>
+
+    <div class="friends-flex" style="
+        display:flex;
+        gap:24px;
+        transition: all 0.25s ease;
+    ">
+
 
       <!-- LEFT COLUMN: SEARCH USERS -->
       <div style="flex:1;">
