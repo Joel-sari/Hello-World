@@ -52,8 +52,15 @@ async function loadFriendData() {
 
 function renderFriendSummary(count) {
   modalFriendCount.textContent = count;
-  friendCountPill.textContent = count > 0 ? `(${count})` : "";
+
+  if (count <= 0) {
+    friendCountPill.style.display = "none";
+  } else {
+    friendCountPill.style.display = "inline-flex";
+    friendCountPill.textContent = count;
+  }
 }
+
 
 function renderIncomingRequests(list) {
   incomingContainer.innerHTML = "";

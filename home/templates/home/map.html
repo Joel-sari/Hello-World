@@ -48,7 +48,20 @@
 
     <!-- NEW FRIENDS BUTTON -->
     <button class="profile-dropdown-item" id="friends-link">
-        Friends <span id="friends-count-pill" style="color:#38bdf8;"></span>
+        Friends <span id="friends-count-pill" style="
+        display:inline-flex;
+        align-items:center;
+        justify-content:center;
+        background:#0f766e;
+        color:#ecfeff;
+        font-size:11px;
+        font-weight:600;
+        padding:2px 7px;
+        min-width:18px;
+        height:18px;
+        border-radius:9999px;
+        margin-left:6px;
+    "></span>
     </button>
 
     <button class="profile-dropdown-item" id="view-gallery-link"
@@ -349,5 +362,9 @@
 
 <!-- UI logic for add/edit/reaction modals -->
 <script src="{% static 'home/js/pin_modals.js' %}"></script>
+
+<!-- NEW FRIENDS JS -->
+<script src="{% static 'home/js/friends.js' %}"></script>
+
 
 {% endblock %}
