@@ -509,3 +509,168 @@ def my_photos(request):
     )
 
     return JsonResponse({"photos": photos_payload})
+
+# -----------------------------------------------------------
+# FRIENDSHIP API ENDPOINTS
+# -----------------------------------------------------------
+
+from .models import Friendship
+from django.db.models import Q
+
+@login_required
+def search_users(request):
+    """
+    GET /api/friends/search/?q=<text>
+    Returns a list of users matching the query (excluding self).
+    """
+    query = request.GET.get("q", "").strip()
+    if not query:
+        return JsonResponse({"results": []})
+
+    users = User.objects.filter(username__icontains=query).exclude(
+        id=request.user.id
+    )[:20]
+
+    results = [
+        {
+            "id": u.id,
+            "username": u.username,
+            "display_name": u.username,
+        }
+        for u in users
+    ]
+
+    return JsonResponse({"results": results})
+
+
+@login_required
+def friend_request(request, username):
+    """
+    POST /api/friend-request/<username>/
+    Sends a friend request unless one already exists.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        target = User.objects.get(username=username)
+    except User.DoesNotExist:
+        return JsonResponse({"error": "User not found"}, status=404)
+
+    if target == request.user:
+        return JsonResponse({"error": "Cannot friend yourself"}, status=400)
+
+    # Check if any relationship already exists in either direction
+    existing = Friendship.objects.filter(
+        Q(from_user=request.user, to_user=target)
+        | Q(from_user=target, to_user=request.user)
+    ).first()
+
+    if existing:
+        return JsonResponse({"status": existing.status})
+
+    # Create new pending request
+    Friendship.objects.create(
+        from_user=request.user,
+        to_user=target,
+        status="pending"
+    )
+
+    return JsonResponse({"ok": True, "status": "pending"})
+
+
+@login_required
+def friend_accept(request, friendship_id):
+    """
+    POST /api/friend-accept/<id>/
+    Accepts an incoming friend request.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        fr = Friendship.objects.get(id=friendship_id, to_user=request.user)
+    except Friendship.DoesNotExist:
+        return JsonResponse({"error": "Friend request not found"}, status=404)
+
+    fr.status = "accepted"
+    fr.save()
+
+    return JsonResponse({
+        "id": fr.id,
+        "from_user": fr.from_user.username,
+        "to_user": fr.to_user.username,
+        "status": fr.status
+    })
+
+
+@login_required
+def friend_reject(request, friendship_id):
+    """
+    POST /api/friend-reject/<id>/
+    Deletes the friend request entirely.
+    """
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    try:
+        fr = Friendship.objects.get(id=friendship_id, to_user=request.user)
+    except Friendship.DoesNotExist:
+        return JsonResponse({"error": "Friend request not found"}, status=404)
+
+    fr.delete()
+
+    return JsonResponse({"ok": True})
+
+
+@login_required
+def friend_list(request):
+    """
+    GET /api/friends/
+    Returns:
+      - accepted friends
+      - incoming pending
+      - outgoing pending
+    """
+    # Accepted friendships
+    accepted = Friendship.objects.filter(
+        Q(from_user=request.user) | Q(to_user=request.user),
+        status="accepted"
+    )
+
+    def other_user(f):
+        return f.to_user if f.from_user == request.user else f.from_user
+
+    friends = [
+        {"id": other_user(f).id, "username": other_user(f).username}
+        for f in accepted
+    ]
+
+    # Incoming friend requests
+    incoming = [
+        {
+            "id": fr.id,
+            "from_user": fr.from_user.username,
+        }
+        for fr in Friendship.objects.filter(
+            to_user=request.user, status="pending"
+        )
+    ]
+
+    # Outgoing friend requests
+    outgoing = [
+        {
+            "id": fr.id,
+            "to_user": fr.to_user.username,
+        }
+        for fr in Friendship.objects.filter(
+            from_user=request.user, status="pending"
+        )
+    ]
+
+    return JsonResponse({
+        "friends": friends,
+        "incoming_requests": incoming,
+        "outgoing_requests": outgoing,
+        "friend_count": len(friends),
+    })
