@@ -62,6 +62,10 @@ function renderFriendSummary(count) {
 }
 
 
+// ===============================
+// Render Incoming Requests
+// ===============================
+
 function renderIncomingRequests(list) {
   incomingContainer.innerHTML = "";
 
@@ -101,7 +105,6 @@ function renderIncomingRequests(list) {
     incomingContainer.appendChild(row);
   });
 
-  // attach event handlers
   incomingContainer.querySelectorAll(".accept-btn").forEach(btn => {
     btn.addEventListener("click", () => handleAccept(btn.dataset.id));
   });
@@ -110,6 +113,11 @@ function renderIncomingRequests(list) {
     btn.addEventListener("click", () => handleReject(btn.dataset.id));
   });
 }
+
+
+// ===============================
+// Render Friends List
+// ===============================
 
 function renderFriendsList(list) {
   friendsListContainer.innerHTML = "";
@@ -140,16 +148,15 @@ function renderFriendsList(list) {
         <div style="display:flex; gap:6px; margin-top:4px;">
           <button
             class="view-pins-btn"
-            disabled
+            data-username="${friend.username}"
             style="
               font-size:11px;
               padding:2px 6px;
-              background:#1e293b;
-              color:#7dd3fc;
-              border:1px solid #334155;
+              background:#0ea5e9;
+              color:white;
+              border:1px solid #0284c7;
               border-radius:6px;
-              opacity:0.7;
-              cursor:not-allowed;
+              cursor:pointer;
             "
           >
             View Pins
@@ -175,13 +182,18 @@ function renderFriendsList(list) {
     `;
 
     friendsListContainer.appendChild(row);
+
+    // Attach view pins handler HERE — correct place
+    row.querySelector(".view-pins-btn").addEventListener("click", () => {
+      viewFriendPins(friend.username);
+    });
   });
 
+  // Attach unfriend handlers
   document.querySelectorAll(".unfriend-btn").forEach(btn => {
     btn.addEventListener("click", () => unfriend(btn.dataset.id));
   });
 }
-
 
 
 // ===============================
@@ -191,9 +203,7 @@ function renderFriendsList(list) {
 async function handleAccept(id) {
   await fetch(`/api/friend-accept/${id}/`, {
     method: "POST",
-    headers: {
-      "X-CSRFToken": getCSRF(),
-    },
+    headers: { "X-CSRFToken": getCSRF() },
   });
 
   loadFriendData();
@@ -202,9 +212,7 @@ async function handleAccept(id) {
 async function handleReject(id) {
   await fetch(`/api/friend-reject/${id}/`, {
     method: "POST",
-    headers: {
-      "X-CSRFToken": getCSRF(),
-    },
+    headers: { "X-CSRFToken": getCSRF() },
   });
 
   loadFriendData();
@@ -217,9 +225,45 @@ async function unfriend(id) {
       headers: { "X-CSRFToken": getCSRF() },
     });
 
-    loadFriendData(); // refresh modal
+    loadFriendData();
   } catch (err) {
     console.error("Failed to unfriend:", err);
+  }
+}
+
+
+// ===============================
+// View Friend Pins
+// ===============================
+
+async function viewFriendPins(username) {
+  friendsModal.classList.add("hidden");
+
+  alert(`Viewing @${username}'s pins`);
+
+  try {
+    const res = await fetch(`/api/pins/${username}/`, {
+      credentials: "same-origin"
+    });
+
+    if (!res.ok) {
+      console.error("Failed to load friend's pins");
+      return;
+    }
+
+    const data = await res.json();
+
+    if (window.showPins) {
+      showPins(data.pins);
+    }
+
+    if (data.pins.length > 0 && window.moveCameraTo) {
+      const p = data.pins[0];
+      moveCameraTo(p.lat, p.lon);
+    }
+
+  } catch (err) {
+    console.error("Error viewing friend pins:", err);
   }
 }
 
@@ -289,7 +333,6 @@ function renderSearchResults(list) {
     searchResultsContainer.appendChild(row);
   });
 
-  // event handlers
   searchResultsContainer.querySelectorAll(".add-friend-btn").forEach(btn => {
     btn.addEventListener("click", () => sendFriendRequest(btn));
   });
@@ -309,9 +352,7 @@ async function sendFriendRequest(btn) {
   try {
     await fetch(`/api/friend-request/${username}/`, {
       method: "POST",
-      headers: {
-        "X-CSRFToken": getCSRF(),
-      },
+      headers: { "X-CSRFToken": getCSRF() },
     });
 
     loadFriendData();

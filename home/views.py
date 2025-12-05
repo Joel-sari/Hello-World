@@ -674,3 +674,60 @@ def friend_list(request):
         "outgoing_requests": outgoing,
         "friend_count": len(friends),
     })
+
+@login_required
+def friend_remove(request, friendship_id):
+    """Remove an existing friendship (accepted)."""
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=405)
+
+    # Can delete if user is either side of the friendship
+    friendship = get_object_or_404(
+        Friendship,
+        id=friendship_id,
+        status="accepted",
+    )
+
+    if friendship.from_user != request.user and friendship.to_user != request.user:
+        return JsonResponse({"error": "Not allowed"}, status=403)
+
+    friendship.delete()
+    return JsonResponse({"ok": True})
+
+@login_required
+def user_pins(request, username):
+    """Return all pins for a specific user."""
+    from django.contrib.auth import get_user_model
+    User = get_user_model()
+
+    target = get_object_or_404(User, username=username)
+
+    pins_qs = (
+        Pin.objects.filter(user=target)
+        .select_related("user")
+        .prefetch_related("photos")
+    )
+
+    data = []
+    for pin in pins_qs:
+        cover_url = request.build_absolute_uri(pin.image.url) if pin.image else None
+        extra_photos = [
+            request.build_absolute_uri(photo.image.url)
+            for photo in pin.photos.all()
+        ]
+
+        data.append({
+            "id": pin.id,
+            "lat": pin.latitude,
+            "lon": pin.longitude,
+            "caption": pin.caption or "",
+            "imageUrl": cover_url,
+            "photos": extra_photos,
+            "user": pin.user.username,
+            "city": pin.city,
+            "state": pin.state,
+            "country": pin.country,
+            "isOwner": pin.user == request.user,
+        })
+
+    return JsonResponse({"pins": data})

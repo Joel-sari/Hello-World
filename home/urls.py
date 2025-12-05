@@ -30,6 +30,10 @@ urlpatterns = [
     path("api/friend-accept/<int:friendship_id>/", views.friend_accept, name="friend_accept"),
     path("api/friend-reject/<int:friendship_id>/", views.friend_reject, name="friend_reject"),
     path("api/friends/", views.friend_list, name="friend_list"),
+    path("api/friend-remove/<int:friendship_id>/", views.friend_remove, name="friend_remove"),
+    path("api/pins/<str:username>/", views.user_pins, name="user_pins"),
+
+
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
