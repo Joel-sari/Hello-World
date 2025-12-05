@@ -132,7 +132,31 @@ function renderFriendsList(list) {
       font-size:0.9rem;
       color:#e2e8f0;
     `;
-    row.textContent = `@${friend.username}`;
+    
+    row.innerHTML = `
+    <div style="display:flex; flex-direction:column;">
+        <span style="font-weight:500;">@${friend.username}</span>
+        <button
+        class="view-pins-btn"
+        style="
+            margin-top:4px;
+            font-size:11px;
+            padding:2px 6px;
+            width:fit-content;
+            background:#1e293b;
+            color:#7dd3fc;
+            border:1px solid #334155;
+            border-radius:6px;
+            cursor:not-allowed;
+            opacity:0.7;
+        "
+        disabled
+        >
+        View Pins
+        </button>
+    </div>
+    `;
+
 
     friendsListContainer.appendChild(row);
   });
