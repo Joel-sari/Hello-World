@@ -10,12 +10,12 @@
 // ===============================
 
 import * as THREE from "https://cdn.jsdelivr.net/npm/three@0.153.0/build/three.module.js";
+
 // --- MODE ---
 const MODE = document.body.classList.contains("mode-map") ? "map" : "login";
 
 // Treat narrow viewports as mobile for camera layout
 const IS_MOBILE = window.innerWidth <= 768; // px breakpoint
-
 
 // --- SCENE / CAMERA / RENDERER ---
 const scene = new THREE.Scene();
@@ -41,6 +41,7 @@ const textureLoader = new THREE.TextureLoader();
 const earthTexture = textureLoader.load(
   "/static/home/textures/FINALGLOBE.jpeg?v=" + Date.now()
 );
+
 // --- PIN SPRITE TEXTURE ---
 const pinSpriteTex = textureLoader.load("/static/home/textures/pin_sprite.png");
 const pinSpriteMat = new THREE.SpriteMaterial({
@@ -57,26 +58,21 @@ scene.add(earth);
 
 // --- SUN LIGHT (animated directional light) ---
 const sunLight = new THREE.DirectionalLight(0xffffff, 1.4);
-sunLight.position.set(10, 5, 0); // initial position
-sunLight.castShadow = false;     // optional
+sunLight.position.set(10, 5, 0);
+sunLight.castShadow = false;
 scene.add(sunLight);
-
-// store angle for rotation
 let sunAngle = 0;
 
 scene.add(new THREE.AmbientLight(0xffffff, 0.18));
 
 // --- CLOUDS (billboard sprites orbiting around globe) ---
-// --- IMPROVED CLOUD TEXTURE (Perlin-like soft clouds, no rainbow noise) ---
 function makeCloudTexture(size = 256) {
   const canvas = document.createElement("canvas");
   canvas.width = canvas.height = size;
   const ctx = canvas.getContext("2d");
 
-  // Clear fully
   ctx.clearRect(0, 0, size, size);
 
-  // Generate soft noise-based cloud texture
   const imgData = ctx.createImageData(size, size);
   const data = imgData.data;
 
@@ -90,12 +86,10 @@ function makeCloudTexture(size = 256) {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       const n = noise(x, y);
-      const brightness = Math.max(0, Math.min(255, (n + 1) * 128)); // 0–255
-
+      const brightness = Math.max(0, Math.min(255, (n + 1) * 128));
       const dist = Math.hypot(x - size / 2, y - size / 2);
       const fade = Math.max(0, 1 - dist / (size * 0.5));
-
-      const alpha = brightness * fade * 0.5; // softer edges
+      const alpha = brightness * fade * 0.5;
 
       const i = (y * size + x) * 4;
       data[i] = 255;
@@ -108,11 +102,6 @@ function makeCloudTexture(size = 256) {
   ctx.putImageData(imgData, 0, 0);
 
   const tex = new THREE.CanvasTexture(canvas);
-
-  // FIX: Remove colorSpace issue that caused rainbow noise
-  // tex.colorSpace = THREE.SRGBColorSpace;  <-- DO NOT USE
-
-  // Make the texture smooth
   tex.minFilter = THREE.LinearFilter;
   tex.magFilter = THREE.LinearFilter;
   tex.needsUpdate = true;
@@ -122,13 +111,14 @@ function makeCloudTexture(size = 256) {
 
 const cloudsGroup = new THREE.Group();
 scene.add(cloudsGroup);
+
 (function addSkyClouds() {
   const tex = makeCloudTexture(256);
   const mat = new THREE.SpriteMaterial({
     map: tex,
     transparent: true,
     depthWrite: false,
-    opacity: 10// softer, realistic clouds
+    opacity: 1,
   });
   const NUM = 6,
     SKY_R = EARTH_RADIUS * 1.35;
@@ -149,7 +139,6 @@ scene.add(cloudsGroup);
 
 // --- CAMERA COMPOSITION ---
 if (MODE === "login") {
-  // Start a bit farther back on mobile so the globe is fully visible
   if (IS_MOBILE) {
     camera.position.set(0, 2.1, 7.2);
   } else {
@@ -157,7 +146,6 @@ if (MODE === "login") {
   }
   camera.lookAt(earth.position);
 } else {
-  // Map mode starts from same base, then revealMap animates in
   if (IS_MOBILE) {
     camera.position.set(0, 2.1, 7.2);
   } else {
@@ -165,7 +153,6 @@ if (MODE === "login") {
   }
   camera.lookAt(earth.position);
 
-  // On mobile, stop the camera a bit farther away so the globe isn't too zoomed in
   requestAnimationFrame(() =>
     revealMap({
       toY: IS_MOBILE ? 0.2 : 0,
@@ -181,9 +168,9 @@ let cloudsYaw = 0.0015;
 let tCloud = 0;
 
 // ===============================
-// PINS (User Story #1)
+// PINS
 // ===============================
-const PIN_SURFACE_R = EARTH_RADIUS * 1.01; // float just above the surface
+const PIN_SURFACE_R = EARTH_RADIUS * 1.01;
 const pinGroup = new THREE.Group();
 scene.add(pinGroup);
 
@@ -191,7 +178,7 @@ const raycaster = new THREE.Raycaster();
 const mouse = new THREE.Vector2(-2, -2);
 let hoveredPin = null;
 
-// Create lightweight popup if template doesn't include it
+// Popup for pin hover
 let popup = document.getElementById("pin-popup");
 if (!popup) {
   popup = document.createElement("div");
@@ -217,41 +204,31 @@ if (!popup) {
       transform 120ms ease-out;
     opacity:0;
   `;
-  // attach near canvas
   renderer.domElement.parentElement?.appendChild(popup);
 }
 
-// Track when the mouse is over the popup so we don't hide it
 let overPopup = false;
-
 popup.addEventListener("mouseenter", () => {
   overPopup = true;
 });
-
 popup.addEventListener("mouseleave", () => {
   overPopup = false;
 });
-// ==========================================
-// HIGH-PRECISION lat/lon → 3D placement
-// with texture alignment correction
-// ==========================================
-const LON_OFFSET = -0.25;   // adjust +/- 0–3 degrees after testing
-const LAT_OFFSET = 1.59;   // adjust if texture seems vertically off
-const PIN_LIFT = 1.005;   // closer to surface for better accuracy
+
+// LAT/LON → 3D
+const LON_OFFSET = -0.25;
+const LAT_OFFSET = 1.59;
 
 function latLonToVector3(lat, lon, radius) {
-  // Apply small manual alignment offsets to fix slight texture misalignment
   const adjLat = lat + LAT_OFFSET;
   const adjLon = lon + LON_OFFSET;
 
-  // Convert to radians
   const phi = (90 - adjLat) * (Math.PI / 180);
   const theta = (adjLon + 180) * (Math.PI / 180);
 
-  // Convert spherical → Cartesian
   const x = -radius * Math.sin(phi) * Math.cos(theta);
-  const y =  radius * Math.cos(phi);
-  const z =  radius * Math.sin(phi) * Math.sin(theta);
+  const y = radius * Math.cos(phi);
+  const z = radius * Math.sin(phi) * Math.sin(theta);
 
   return new THREE.Vector3(x, y, z);
 }
@@ -261,7 +238,6 @@ function focusCameraOn(lat, lon, ms = 1500) {
   const start = camera.position.clone();
   const startTime = performance.now();
 
-  // optional: ease in/out curve
   const ease = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
   function step(now) {
@@ -273,40 +249,27 @@ function focusCameraOn(lat, lon, ms = 1500) {
   }
   requestAnimationFrame(step);
 }
-// --- SPRITE PIN MESH (replaces sphere pins) ---
+
+// Sprite pin mesh
 function createPinMesh(data) {
-  // Clone material so hover effects don't affect all pins
   const s = new THREE.Sprite(pinSpriteMat.clone());
 
-  // Base world size for sprite
-  const baseSize = EARTH_RADIUS * 0.03; // small world scale
+  const baseSize = EARTH_RADIUS * 0.03;
 
-  // Slightly transparent by default; we'll brighten on hover
   s.material.opacity = 0.9;
 
-  // Store data plus rendering metadata on userData
   s.userData = {
     ...data,
     baseSize: baseSize,
   };
 
-  // Put pin above earth surface
   s.position.copy(latLonToVector3(data.lat, data.lon, PIN_SURFACE_R));
-
-  // Initial scale; animate() will keep it in sync with zoom / hover
   s.scale.set(baseSize, baseSize, 1);
 
   return s;
 }
 
-const glowMaterial = new THREE.MeshBasicMaterial({
-  color: 0xffffff,
-  emissive: new THREE.Color(0x66cfff),
-  emissiveIntensity: 0.7
-});
-
 function showPopup(screenX, screenY, d) {
-  // If a bigger modal is open, don't show small popup
   if (
     document.getElementById("pinDetailsModal")?.classList.contains("show") ||
     document.getElementById("editPinModal")?.classList.contains("show")
@@ -315,7 +278,6 @@ function showPopup(screenX, screenY, d) {
   }
 
   const username = d.user || "You";
-
   const hintText = d.isOwner
     ? "Click to view & edit details"
     : "Click to view details";
@@ -342,7 +304,6 @@ function showPopup(screenX, screenY, d) {
     </div>
   `;
 
-  // Temporarily make visible to measure true size
   popup.style.display = "block";
   popup.style.visibility = "hidden";
   popup.style.opacity = "0";
@@ -352,19 +313,15 @@ function showPopup(screenX, screenY, d) {
   const w = rect.width;
   const h = rect.height;
 
-  // Position centered ABOVE the pin
   popup.style.left = `${screenX - w / 2}px`;
   popup.style.top = `${screenY - h - 14}px`;
 
-  // Fade + scale in
   popup.style.visibility = "visible";
   popup.style.opacity = "1";
   popup.style.transform = "scale(1) translateY(0)";
 }
 
-
 function hidePopup() {
-  // Animate out; after the transition completes, actually hide
   popup.style.opacity = "0";
   popup.style.transform = "scale(0.96) translateY(4px)";
 
@@ -375,70 +332,51 @@ function hidePopup() {
   }, 140);
 }
 
-
 renderer.domElement.addEventListener("mousemove", (e) => {
   const rect = renderer.domElement.getBoundingClientRect();
   mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
   mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 });
 
-
-renderer.domElement.addEventListener("click", (e) => {
+renderer.domElement.addEventListener("click", () => {
   if (!hoveredPin) return;
   const data = hoveredPin.userData;
-  // Always open details modal first
   openPinDetails(data);
 });
+
+// ===============================
+// PIN DETAILS MODAL
+// ===============================
 
 function openPinDetails(data) {
   const modal = document.getElementById("pinDetailsModal");
 
-  // -------------------------------
-  // 1) Build full image list
-  //    (cover image + extra photos)
-  // -------------------------------
   const allImages = [];
   if (data.imageUrl) {
     allImages.push(data.imageUrl);
   }
   if (Array.isArray(data.photos)) {
     data.photos.forEach((item) => {
-      // Support both:
-      //   ["https://...", "https://..."]
-      //   [{ id: 1, url: "https://..." }, ...]
       let url = null;
-
       if (typeof item === "string") {
         url = item;
       } else if (item && typeof item === "object" && "url" in item) {
         url = item.url;
       }
-
-      if (url) {
-        allImages.push(url);
-      }
+      if (url) allImages.push(url);
     });
   }
 
   const mainImg = document.getElementById("detailImage");
   const thumbsRow = document.getElementById("detailThumbnails");
 
-  // -------------------------------
-  // 2) Caption text
-  // -------------------------------
   document.getElementById("detailCaption").textContent =
     data.caption || "No caption";
 
-  // -------------------------------
-  // 3) Username (@handle)
-  // -------------------------------
   document.getElementById("detailUser").textContent = data.user
     ? `@${data.user}`
     : "@unknown";
 
-  // -------------------------------
-  // 4) Pretty location (City, State, Country)
-  // -------------------------------
   const city = data.city || "";
   const state = data.state || "";
   const country = data.country || "";
@@ -453,12 +391,8 @@ function openPinDetails(data) {
   } else {
     prettyLocation = "Unknown location";
   }
-
   document.getElementById("detailLocation").textContent = prettyLocation;
 
-  // -------------------------------
-  // 5) Main image (big one on top)
-  // -------------------------------
   if (allImages.length > 0) {
     mainImg.src = allImages[0];
     mainImg.style.display = "block";
@@ -467,19 +401,11 @@ function openPinDetails(data) {
     mainImg.style.display = "none";
   }
 
-  // -------------------------------
-  // 6) Thumbnails (small strip below)
-  // -------------------------------
   if (thumbsRow) {
-    // Clear any previous thumbnails
     thumbsRow.innerHTML = "";
-
-    // Only bother if there is at least 1 image
     allImages.forEach((url, idx) => {
       const thumb = document.createElement("img");
       thumb.src = url;
-
-      // Basic thumbnail styling
       thumb.style.width = "54px";
       thumb.style.height = "54px";
       thumb.style.objectFit = "cover";
@@ -492,11 +418,8 @@ function openPinDetails(data) {
           : "0 0 0 1px rgba(148,163,184,0.5)";
       thumb.style.opacity = idx === 0 ? "1" : "0.6";
 
-      // When user clicks a thumbnail → swap main image
       thumb.onclick = () => {
         mainImg.src = url;
-
-        // Update highlight on all thumbs
         thumbsRow.querySelectorAll("img").forEach((imgEl) => {
           if (imgEl === thumb) {
             imgEl.style.opacity = "1";
@@ -512,9 +435,6 @@ function openPinDetails(data) {
     });
   }
 
-  // -------------------------------
-  // 7) Save pin ID for reactions / edit
-  // -------------------------------
   modal.dataset.pinId = data.id;
 
   const ownerActions = document.getElementById("ownerActions");
@@ -530,38 +450,41 @@ function openPinDetails(data) {
     }
   }
 
-  // -------------------------------
-  // 8) Reactions (same as before)
-  // -------------------------------
   loadReactions(data.id);
 
-  // -------------------------------
-  // 9) Show modal
-  // -------------------------------
-  modal.classList.remove("hidden"); // ensure it's visible
+  modal.classList.remove("hidden");
   modal.classList.add("show");
 }
 
 async function loadReactions(pinId) {
-  const res = await fetch(`/api/pin/${pinId}/`, { credentials: "same-origin" });
-  if (!res.ok) return;
+  try {
+    const res = await fetch(`/api/pin/${pinId}/`, {
+      credentials: "same-origin",
+    });
+    if (!res.ok) return;
+    const data = await res.json();
 
-  const data = await res.json();
+    const countsDiv = document.getElementById("reactionCounts");
+    if (!countsDiv) return;
 
-  // Reaction counts
-  const countsDiv = document.getElementById("reactionCounts");
-  countsDiv.innerHTML = "";
+    countsDiv.innerHTML = "";
+    const icons = { like: "👍", love: "❤️", laugh: "😂", wow: "😮" };
 
-  const icons = { like: "👍", love: "❤️", laugh: "😂", wow: "😮" };
+    if (data.reaction_counts) {
+      for (const [emoji, count] of Object.entries(data.reaction_counts)) {
+        countsDiv.innerHTML += `<span>${icons[emoji] || ""} ${count}</span>`;
+      }
+    }
 
-  for (const [emoji, count] of Object.entries(data.reaction_counts)) {
-    countsDiv.innerHTML += `<span>${icons[emoji]} ${count}</span>`;
+    if (data.user_reaction) {
+      document.querySelectorAll(".react-btn").forEach((btn) => {
+        btn.style.opacity =
+          btn.dataset.emoji === data.user_reaction ? "1" : "0.4";
+      });
+    }
+  } catch (err) {
+    console.error("Failed to load reactions", err);
   }
-
-  // Highlight user's reaction
-  document.querySelectorAll(".react-btn").forEach((btn) => {
-    btn.style.opacity = btn.dataset.emoji === data.user_reaction ? "1" : "0.4";
-  });
 }
 
 async function loadMyPins() {
@@ -580,31 +503,27 @@ async function loadMyPins() {
 }
 
 window.addPinToGlobe = function (pin) {
-  pin.isOwner = true; // treat as your pin for hover/edit logic
+  pin.isOwner = true;
 
-  // 1) Try to find an existing marker for this pin id
   const existing = pinGroup.children.find(
     (obj) => obj.userData && obj.userData.id === pin.id
   );
 
   if (existing) {
-    // ✅ EDIT MODE: update the existing marker in-place
-    // merge so we keep things like baseSize
     existing.userData = {
       ...existing.userData,
       ...pin,
     };
     existing.position.copy(latLonToVector3(pin.lat, pin.lon, PIN_SURFACE_R));
   } else {
-    // ✅ ADD MODE: create a new marker
     const mesh = createPinMesh(pin);
     pinGroup.add(mesh);
   }
 
-  // Optional: focus camera on this pin after save
   focusCameraOn(pin.lat, pin.lon);
 };
-// --- HOVER CHECK inside render loop ---
+
+// HOVER CHECK
 function updatePinHover() {
   const detailsOpen = document
     .getElementById("pinDetailsModal")
@@ -613,7 +532,6 @@ function updatePinHover() {
     .getElementById("editPinModal")
     ?.classList.contains("show");
 
-  // If a big modal is open, hide small popup and clear hover state
   if (detailsOpen || editOpen) {
     hidePopup();
     if (hoveredPin) {
@@ -631,17 +549,13 @@ function updatePinHover() {
     const obj = hits[0].object;
 
     if (hoveredPin !== obj) {
-      // reset last hovered pin if any
-      if (hoveredPin) {
-        hoveredPin.material.opacity = 0.9; // base opacity
-      }
+      if (hoveredPin) hoveredPin.material.opacity = 0.9;
 
       hoveredPin = obj;
-      hoveredPin.material.opacity = 1.0; // brighter on hover
+      hoveredPin.material.opacity = 1.0;
       renderer.domElement.style.cursor = "pointer";
     }
 
-    // While hovered, keep popup pinned above the pin
     const v = hoveredPin.position.clone().project(camera);
     const rect = renderer.domElement.getBoundingClientRect();
     const sx = (v.x * 0.5 + 0.5) * rect.width;
@@ -665,7 +579,6 @@ function updatePinHover() {
 function animate() {
   requestAnimationFrame(animate);
 
-  // clouds drift
   cloudsGroup.rotation.y += cloudsYaw;
   tCloud += 0.005;
   cloudsGroup.children.forEach((sprite, i) => {
@@ -674,13 +587,10 @@ function animate() {
     sprite.position.addScaledVector(dir, Math.sin(phase) * 0.0025);
   });
 
-  // tiny globe spin on login
   earth.rotation.y += earthSpin;
 
-  // pin hover
   updatePinHover();
 
-  // Adjust pin size based on camera distance so they don't cover the whole screen when zoomed in
   const camDist = camera.position.length();
   const baseScale = THREE.MathUtils.clamp(
     camDist / (EARTH_RADIUS * 4),
@@ -690,14 +600,9 @@ function animate() {
 
   pinGroup.children.forEach((mesh) => {
     const spriteBase = mesh.userData.baseSize || EARTH_RADIUS * 0.03;
-
-    // determine if hovered
     const isHovered = mesh === hoveredPin;
-
-    // base factor keeps size proportional to camera distance
     const camFactor = baseScale;
 
-    // tiny "breathing" pulse when hovered
     let hoverFactor = 1.0;
     if (isHovered) {
       const t = performance.now() * 0.005;
@@ -706,21 +611,17 @@ function animate() {
     }
 
     const finalScale = spriteBase * camFactor * hoverFactor;
-
     mesh.scale.set(finalScale, finalScale, 1);
   });
 
-  // --- Animate sun orbit around Earth ---
-  sunAngle += 0.0009; // speed of orbit (adjust slower/faster)
-  const sunRadius = 12; // distance from Earth
+  sunAngle += 0.0009;
+  const sunRadius = 12;
 
   sunLight.position.set(
     Math.cos(sunAngle) * sunRadius,
-    Math.sin(sunAngle * 0.6) * 4,  // slight vertical tilt
+    Math.sin(sunAngle * 0.6) * 4,
     Math.sin(sunAngle) * sunRadius
   );
-
-  // Ensure light points toward Earth
   sunLight.lookAt(earth.position);
 
   renderer.render(scene, camera);
@@ -762,12 +663,14 @@ function enableOrbit() {
     orbitState.lastX = e.touches ? e.touches[0].clientX : e.clientX;
     orbitState.lastY = e.touches ? e.touches[0].clientY : e.clientY;
   };
+
   const onMove = (e) => {
     if (!orbitState.dragging) return;
     const x = e.touches ? e.touches[0].clientX : e.clientX;
     const y = e.touches ? e.touches[0].clientY : e.clientY;
-    const dx = x - orbitState.lastX,
-      dy = y - orbitState.lastY;
+    const dx = x - orbitState.lastX;
+    const dy = y - orbitState.lastY;
+
     orbitState.lastX = x;
     orbitState.lastY = y;
 
@@ -779,30 +682,30 @@ function enableOrbit() {
     camera.position.setFromSpherical(spherical);
     camera.lookAt(earth.position);
   };
-  const onUp = () => (orbitState.dragging = false);
+
+  const onUp = () => {
+    orbitState.dragging = false;
+  };
 
   renderer.domElement.addEventListener("mousedown", onDown);
   window.addEventListener("mousemove", onMove);
   window.addEventListener("mouseup", onUp);
+
   renderer.domElement.addEventListener("touchstart", onDown, { passive: true });
   window.addEventListener("touchmove", onMove, { passive: true });
   window.addEventListener("touchend", onUp);
 
-  // ------------------------------------
-  // ZOOM SUPPORT (scroll wheel & pinch)
-  // ------------------------------------
-  const minDist = EARTH_RADIUS * 1.08; // extremely close
-  const maxDist = EARTH_RADIUS * 3.0; // allow more zoom-out too
+  const minDist = EARTH_RADIUS * 1.08;
+  const maxDist = EARTH_RADIUS * 3.0;
 
   function applyZoom(delta) {
     spherical.setFromVector3(camera.position.clone());
-    spherical.radius += delta * 0.01; // adjust zoom sensitivity
+    spherical.radius += delta * 0.01;
     spherical.radius = Math.max(minDist, Math.min(maxDist, spherical.radius));
     camera.position.setFromSpherical(spherical);
     camera.lookAt(earth.position);
   }
 
-  // Mouse wheel zoom
   renderer.domElement.addEventListener(
     "wheel",
     (e) => {
@@ -812,7 +715,6 @@ function enableOrbit() {
     { passive: false }
   );
 
-  // Pinch zoom (trackpad)
   let lastDistance = null;
   renderer.domElement.addEventListener(
     "touchmove",
@@ -835,11 +737,7 @@ function enableOrbit() {
     lastDistance = null;
   });
 
-  // ------------------------------------
-  // MacBook Safari/Chrome Trackpad Pinch (gesture events)
-  // ------------------------------------
   let lastScale = 1;
-
   renderer.domElement.addEventListener("gesturestart", (e) => {
     e.preventDefault();
     lastScale = e.scale;
@@ -847,12 +745,9 @@ function enableOrbit() {
 
   renderer.domElement.addEventListener("gesturechange", (e) => {
     e.preventDefault();
-
     const scaleChange = e.scale - lastScale;
     lastScale = e.scale;
-
-    // Convert scale change into zoom delta
-    applyZoom(-scaleChange * 150); // Larger multiplier = stronger zoom
+    applyZoom(-scaleChange * 150);
   });
 
   renderer.domElement.addEventListener("gestureend", (e) => {
@@ -860,7 +755,6 @@ function enableOrbit() {
     lastScale = 1;
   });
 
-  // Once orbit is live, load pins (so they appear on the fully revealed map)
   loadMyPins();
 }
 
@@ -872,7 +766,7 @@ window.addEventListener("resize", () => {
 });
 
 // ===============================
-// GLOBAL SEARCH FEATURE (Cities, Countries, Anything)
+// GLOBAL SEARCH FEATURE
 // ===============================
 document.addEventListener("DOMContentLoaded", () => {
   const searchBtn = document.getElementById("search-btn");
@@ -893,22 +787,15 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await res.json();
-      console.log("Search results:", data);
-
-      // Move camera to the geocoded location
       const [lat, lon] = data.center;
       moveCameraTo(lat, lon);
-
     } catch (err) {
       console.error("Search error:", err);
     }
   });
 });
 
-// ===============================
 // EDIT PIN BUTTON HANDLER
-// ===============================
-
 document.addEventListener("click", (e) => {
   const btn = e.target.closest(".edit-pin-btn");
   if (!btn) return;
@@ -920,8 +807,6 @@ document.addEventListener("click", (e) => {
 });
 
 function moveCameraTo(lat, lon) {
-  console.log(`Move camera to lat=${lat}, lon=${lon}`);
-
   const target = latLonToVector3(lat, lon, EARTH_RADIUS * 1.4);
   const startPos = camera.position.clone();
   const start = performance.now();
@@ -940,10 +825,14 @@ function moveCameraTo(lat, lon) {
 function showPins(pins) {
   pinGroup.clear();
   pins.forEach((p) => {
-    p.isOwner = p.user === window.CURRENT_USER; // 👈 owner if username matches
+    p.isOwner = p.user === window.CURRENT_USER;
     pinGroup.add(createPinMesh(p));
   });
 }
+
+// 👉 EXPOSE FOR friends.js
+window.moveCameraTo = moveCameraTo;
+window.showPins = showPins;
 
 // ===============================
 // FACEBOOK-STYLE REACTION POPUP
@@ -955,7 +844,6 @@ const reactionSummary = document.getElementById("reactionSummary");
 
 let popupVisible = false;
 
-// Position popup above trigger
 function showReactionPopup() {
   const rect = reactionTrigger.getBoundingClientRect();
   reactionPopup.style.left = `${rect.left + rect.width / 2 - 80}px`;
@@ -971,9 +859,7 @@ function hideReactionPopup() {
   reactionPopup.style.pointerEvents = "none";
   popupVisible = false;
 }
-// ===============================
-// PIN DETAILS MODAL CLOSE BUTTON
-// ===============================
+
 document.addEventListener("DOMContentLoaded", () => {
   const detailsModal = document.getElementById("pinDetailsModal");
   const closeDetailsBtn = document.getElementById("closePinDetails");
@@ -981,18 +867,12 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!detailsModal || !closeDetailsBtn) return;
 
   closeDetailsBtn.addEventListener("click", () => {
-    // hide the details modal completely
     detailsModal.classList.remove("show");
     detailsModal.classList.add("hidden");
-
-    // also hide the reaction popup if it's open
-    if (typeof hideReactionPopup === "function") {
-      hideReactionPopup();
-    }
+    if (typeof hideReactionPopup === "function") hideReactionPopup();
   });
 });
 
-// Show on hover — desktop optimized
 reactionTrigger.addEventListener("mouseenter", showReactionPopup);
 reactionTrigger.addEventListener("mouseleave", () => {
   setTimeout(() => {
@@ -1002,7 +882,6 @@ reactionTrigger.addEventListener("mouseleave", () => {
 
 reactionPopup.addEventListener("mouseleave", hideReactionPopup);
 
-// Hover animation
 document.querySelectorAll(".popup-react").forEach((emoji) => {
   emoji.addEventListener("mouseenter", () => {
     emoji.style.transform = "scale(1.3)";
@@ -1016,13 +895,11 @@ document.querySelectorAll(".popup-react").forEach((emoji) => {
     const emojiType = emoji.dataset.emoji;
     const pinId = document.getElementById("pinDetailsModal").dataset.pinId;
 
-    // Update UI instantly
     userReaction.textContent = emoji.textContent;
     reactionSummary.textContent = "Reacted";
 
     hideReactionPopup();
 
-    // Send reaction to backend
     const res = await fetch(`/api/react/${pinId}/`, {
       method: "POST",
       headers: {
@@ -1041,16 +918,48 @@ document.addEventListener("DOMContentLoaded", () => {
   const viewGalleryLink = document.getElementById("view-gallery-link");
   if (!viewGalleryLink) return;
 
+  const href = viewGalleryLink.getAttribute("onclick")
+    ? null
+    : viewGalleryLink.getAttribute("href");
+
   viewGalleryLink.addEventListener("click", (e) => {
+    if (!href) return;
     e.preventDefault();
-    const href = viewGalleryLink.getAttribute("href");
-
-    // Add fade-out class to body
     document.body.classList.add("page-fade-out");
-
-    // After animation finishes, actually navigate
     setTimeout(() => {
       window.location.href = href;
-    }, 230); // slightly longer than the 220ms transition
+    }, 230);
   });
 });
+
+// ==========================
+// VIEW MY OWN PINS BUTTON
+// ==========================
+const myPinsButton = document.getElementById("viewMyPinsBtn");
+
+if (myPinsButton) {
+  myPinsButton.addEventListener("click", async () => {
+    try {
+      const res = await fetch("/api/my-pins/", {
+        credentials: "same-origin",
+      });
+
+      const data = await res.json();
+
+      // Show your pins
+      if (window.showPins) {
+        showPins(data.pins);
+      }
+
+      // Move camera to first pin (optional)
+      if (data.pins.length > 0 && window.moveCameraTo) {
+        const p = data.pins[0];
+        moveCameraTo(p.lat, p.lon);
+      }
+
+    } catch (err) {
+      console.error("Error loading YOUR pins:", err);
+    }
+  });
+}
+

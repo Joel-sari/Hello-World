@@ -1,5 +1,5 @@
 <!-- Friends Modal -->
-<div id="friendsModal" class="modal hidden" style="z-index:60;">
+<div id="friendsModal" class="modal" style="z-index:60; display:none;">
   <div class="modal-content" style="
       width: 760px;
       max-width: 95%;
@@ -14,7 +14,7 @@
       border: 1px solid rgba(45,212,191,0.35);
       position: relative;
   ">
-    
+
     <!-- Header -->
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:18px;">
       <div style="display:flex; align-items:center; gap:12px;">
@@ -37,14 +37,23 @@
       ">✕</button>
     </div>
 
-    <!-- Two Columns -->
+    <!-- Responsive Column Layout -->
     <style>
-    /* Responsive two-column → single-column collapse */
-    @media (max-width: 700px) {
+      /* Modal visibility */
+      .modal.show {
+        display: flex !important;
+        position: fixed;
+        inset: 0;
+        justify-content: center;
+        align-items: center;
+        background: rgba(0,0,0,0.5);
+      }
+
+      @media (max-width: 700px) {
         #friendsModal .friends-flex {
-        flex-direction: column !important;
+          flex-direction: column !important;
         }
-    }
+      }
     </style>
 
     <div class="friends-flex" style="
@@ -52,7 +61,6 @@
         gap:24px;
         transition: all 0.25s ease;
     ">
-
 
       <!-- LEFT COLUMN: SEARCH USERS -->
       <div style="flex:1;">
@@ -82,7 +90,6 @@
             gap:10px;
             padding-right:4px;
         ">
-          <!-- search results injected here -->
         </div>
 
       </div>
@@ -100,7 +107,6 @@
             max-height:150px;
             overflow-y:auto;
         ">
-          <!-- incoming requests here -->
         </div>
 
         <!-- Friends List -->
@@ -112,7 +118,6 @@
             max-height:220px;
             overflow-y:auto;
         ">
-          <!-- friends list here -->
         </div>
 
       </div>

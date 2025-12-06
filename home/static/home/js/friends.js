@@ -1,13 +1,14 @@
 // ===============================
-// Friends Modal Logic
+// Friends Modal Logic (FULL UPDATE)
 // ===============================
 
+// Elements
 const friendsModal = document.getElementById("friendsModal");
 const friendsLink = document.getElementById("friends-link");
 const friendCountPill = document.getElementById("friends-count-pill");
 const closeFriendsBtn = document.getElementById("close-friends-modal");
 
-// DOM containers
+// Containers
 const incomingContainer = document.getElementById("incoming-requests");
 const friendsListContainer = document.getElementById("friends-list");
 const searchInput = document.getElementById("friend-search-input");
@@ -21,14 +22,14 @@ const modalFriendCount = document.getElementById("friend-count");
 
 if (friendsLink) {
   friendsLink.addEventListener("click", () => {
-    friendsModal.classList.remove("hidden");
+    friendsModal.classList.add("show");
     loadFriendData();
   });
 }
 
 if (closeFriendsBtn) {
   closeFriendsBtn.addEventListener("click", () => {
-    friendsModal.classList.add("hidden");
+    friendsModal.classList.remove("show");
   });
 }
 
@@ -45,6 +46,7 @@ async function loadFriendData() {
     renderFriendSummary(data.friend_count);
     renderIncomingRequests(data.incoming_requests);
     renderFriendsList(data.friends);
+
   } catch (err) {
     console.error("Error loading friends:", err);
   }
@@ -63,7 +65,7 @@ function renderFriendSummary(count) {
 
 
 // ===============================
-// Render Incoming Requests
+// Incoming Friend Requests
 // ===============================
 
 function renderIncomingRequests(list) {
@@ -71,32 +73,28 @@ function renderIncomingRequests(list) {
 
   if (list.length === 0) {
     incomingContainer.innerHTML =
-      `<div style="color:#94a3b8; font-size:0.85rem;">No incoming requests.</div>`;
+      `<div style="color:#94a3b8;font-size:0.85rem;">No incoming requests.</div>`;
     return;
   }
 
   list.forEach(req => {
     const row = document.createElement("div");
     row.style.cssText = `
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      background:rgba(30,41,59,0.75);
-      padding:8px 12px;
-      border-radius:10px;
+      display:flex;justify-content:space-between;align-items:center;
+      background:rgba(30,41,59,0.75);padding:8px 12px;border-radius:10px;
     `;
 
     row.innerHTML = `
-      <div style="font-size:0.9rem; color:#e2e8f0;">@${req.from_user}</div>
-      <div style="display:flex; gap:8px;">
+      <div style="font-size:0.9rem;color:#e2e8f0;">@${req.from_user}</div>
+      <div style="display:flex;gap:8px;">
         <button class="accept-btn"
-          style="background:#0f766e; color:white; padding:4px 10px; border:none; border-radius:8px; cursor:pointer;"
-          data-id="${req.id}">
+                data-id="${req.id}"
+                style="background:#0f766e;color:white;padding:4px 10px;border-radius:8px;">
           Accept
         </button>
         <button class="reject-btn"
-          style="background:#dc2626; color:white; padding:4px 10px; border:none; border-radius:8px; cursor:pointer;"
-          data-id="${req.id}">
+                data-id="${req.id}"
+                style="background:#dc2626;color:white;padding:4px 10px;border-radius:8px;">
           Reject
         </button>
       </div>
@@ -105,18 +103,18 @@ function renderIncomingRequests(list) {
     incomingContainer.appendChild(row);
   });
 
-  incomingContainer.querySelectorAll(".accept-btn").forEach(btn => {
-    btn.addEventListener("click", () => handleAccept(btn.dataset.id));
-  });
+  incomingContainer.querySelectorAll(".accept-btn").forEach(btn =>
+    btn.addEventListener("click", () => handleAccept(btn.dataset.id))
+  );
 
-  incomingContainer.querySelectorAll(".reject-btn").forEach(btn => {
-    btn.addEventListener("click", () => handleReject(btn.dataset.id));
-  });
+  incomingContainer.querySelectorAll(".reject-btn").forEach(btn =>
+    btn.addEventListener("click", () => handleReject(btn.dataset.id))
+  );
 }
 
 
 // ===============================
-// Render Friends List
+// Friends List
 // ===============================
 
 function renderFriendsList(list) {
@@ -124,57 +122,39 @@ function renderFriendsList(list) {
 
   if (list.length === 0) {
     friendsListContainer.innerHTML =
-      `<div style="color:#94a3b8; font-size:0.85rem;">No friends yet.</div>`;
+      `<div style="color:#94a3b8;font-size:0.85rem;">No friends yet.</div>`;
     return;
   }
 
   list.forEach(friend => {
     const row = document.createElement("div");
     row.style.cssText = `
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:8px 12px;
-      background:rgba(30,41,59,0.75);
-      border-radius:10px;
-      font-size:0.9rem;
-      color:#e2e8f0;
+      display:flex;justify-content:space-between;align-items:center;
+      padding:8px 12px;background:rgba(30,41,59,0.75);
+      border-radius:10px;color:#e2e8f0;font-size:0.9rem;
     `;
 
     row.innerHTML = `
-      <div style="display:flex; flex-direction:column;">
+      <div style="display:flex;flex-direction:column;">
         <span style="font-weight:500;">@${friend.username}</span>
 
-        <div style="display:flex; gap:6px; margin-top:4px;">
+        <div style="display:flex;gap:6px;margin-top:4px;">
           <button
             class="view-pins-btn"
             data-username="${friend.username}"
-            style="
-              font-size:11px;
-              padding:2px 6px;
-              background:#0ea5e9;
-              color:white;
-              border:1px solid #0284c7;
-              border-radius:6px;
-              cursor:pointer;
-            "
-          >
+            style="font-size:11px;padding:2px 6px;
+                   background:#0ea5e9;color:white;
+                   border:1px solid #0284c7;
+                   border-radius:6px;">
             View Pins
           </button>
 
           <button
             class="unfriend-btn"
             data-id="${friend.friendship_id}"
-            style="
-              font-size:11px;
-              padding:2px 6px;
-              background:#dc2626;
-              color:white;
-              border:none;
-              border-radius:6px;
-              cursor:pointer;
-            "
-          >
+            style="font-size:11px;padding:2px 6px;
+                   background:#dc2626;color:white;
+                   border-radius:6px;">
             Unfriend
           </button>
         </div>
@@ -183,21 +163,20 @@ function renderFriendsList(list) {
 
     friendsListContainer.appendChild(row);
 
-    // Attach view pins handler HERE — correct place
+    // Attach handlers
     row.querySelector(".view-pins-btn").addEventListener("click", () => {
       viewFriendPins(friend.username);
     });
-  });
 
-  // Attach unfriend handlers
-  document.querySelectorAll(".unfriend-btn").forEach(btn => {
-    btn.addEventListener("click", () => unfriend(btn.dataset.id));
+    row.querySelector(".unfriend-btn").addEventListener("click", () => {
+      unfriend(friend.friendship_id);
+    });
   });
 }
 
 
 // ===============================
-// Accept / Reject Handlers
+// Accept / Reject / Remove Friend
 // ===============================
 
 async function handleAccept(id) {
@@ -205,7 +184,6 @@ async function handleAccept(id) {
     method: "POST",
     headers: { "X-CSRFToken": getCSRF() },
   });
-
   loadFriendData();
 }
 
@@ -214,49 +192,45 @@ async function handleReject(id) {
     method: "POST",
     headers: { "X-CSRFToken": getCSRF() },
   });
-
   loadFriendData();
 }
 
 async function unfriend(id) {
-  try {
-    await fetch(`/api/friend-remove/${id}/`, {
-      method: "POST",
-      headers: { "X-CSRFToken": getCSRF() },
-    });
+  await fetch(`/api/friend-remove/${id}/`, {
+    method: "POST",
+    headers: { "X-CSRFToken": getCSRF() },
+  });
 
-    loadFriendData();
-  } catch (err) {
-    console.error("Failed to unfriend:", err);
-  }
+  // Reload modal data
+  loadFriendData();
 }
 
 
 // ===============================
-// View Friend Pins
+// View Friend Pins — NO ALERT, REAL PIN SWITCH
 // ===============================
 
 async function viewFriendPins(username) {
-  friendsModal.classList.add("hidden");
-
-  alert(`Viewing @${username}'s pins`);
+  friendsModal.classList.remove("show");
 
   try {
     const res = await fetch(`/api/pins/${username}/`, {
-      credentials: "same-origin"
+      credentials: "same-origin",
     });
 
     if (!res.ok) {
-      console.error("Failed to load friend's pins");
+      console.error("Error loading friend's pins");
       return;
     }
 
     const data = await res.json();
 
+    // Show pins on globe
     if (window.showPins) {
       showPins(data.pins);
     }
 
+    // Focus map on first pin
     if (data.pins.length > 0 && window.moveCameraTo) {
       const p = data.pins[0];
       moveCameraTo(p.lat, p.lon);
@@ -284,7 +258,9 @@ if (searchInput) {
       return;
     }
 
-    searchTimeout = setTimeout(() => searchUsers(q), 320);
+    searchTimeout = setTimeout(() => {
+      searchUsers(q);
+    }, 300);
   });
 }
 
@@ -292,8 +268,8 @@ async function searchUsers(query) {
   try {
     const res = await fetch(`/api/friends/search/?q=${encodeURIComponent(query)}`);
     const data = await res.json();
-
     renderSearchResults(data.results);
+
   } catch (err) {
     console.error("Search error:", err);
   }
@@ -304,28 +280,25 @@ function renderSearchResults(list) {
 
   if (list.length === 0) {
     searchResultsContainer.innerHTML =
-      `<div style="color:#94a3b8; font-size:0.85rem;">No users found.</div>`;
+      `<div style="color:#94a3b8;font-size:0.85rem;">No users found.</div>`;
     return;
   }
 
   list.forEach(user => {
     const row = document.createElement("div");
+
     row.style.cssText = `
-      display:flex;
-      justify-content:space-between;
-      align-items:center;
-      padding:8px 12px;
-      background:rgba(30,41,59,0.75);
-      border-radius:10px;
-      font-size:0.9rem;
-      color:#e2e8f0;
+      display:flex;justify-content:space-between;align-items:center;
+      padding:8px 12px;background:rgba(30,41,59,0.75);
+      border-radius:10px;font-size:0.9rem;color:#e2e8f0;
     `;
 
     row.innerHTML = `
       <div>@${user.username}</div>
       <button class="add-friend-btn"
-        style="background:#0ea5e9; color:white; padding:4px 10px; border:none; border-radius:8px; cursor:pointer;"
-        data-username="${user.username}">
+              data-username="${user.username}"
+              style="background:#0ea5e9;color:white;
+                     padding:4px 10px;border-radius:8px;">
         Add Friend
       </button>
     `;
@@ -333,9 +306,9 @@ function renderSearchResults(list) {
     searchResultsContainer.appendChild(row);
   });
 
-  searchResultsContainer.querySelectorAll(".add-friend-btn").forEach(btn => {
-    btn.addEventListener("click", () => sendFriendRequest(btn));
-  });
+  searchResultsContainer.querySelectorAll(".add-friend-btn").forEach(btn =>
+    btn.addEventListener("click", () => sendFriendRequest(btn))
+  );
 }
 
 
@@ -356,6 +329,7 @@ async function sendFriendRequest(btn) {
     });
 
     loadFriendData();
+
   } catch (err) {
     console.error("Friend request failed:", err);
   }
@@ -367,6 +341,6 @@ async function sendFriendRequest(btn) {
 // ===============================
 
 function getCSRF() {
-  const cookie = document.cookie.split("; ").find(row => row.startsWith("csrftoken="));
+  const cookie = document.cookie.split("; ").find(r => r.startsWith("csrftoken="));
   return cookie ? cookie.split("=")[1] : "";
 }
