@@ -1,0 +1,11 @@
+{% extends "admin/base_site.html" %}
+
+{% block content %}
+<p>Redirecting to popularity dashboard…
+   <a href="{% url 'admin_popularity' %}">Click here if you are not redirected.</a>
+</p>
+
+<script>
+    window.location.href = "{% url 'admin_popularity' %}";
+</script>
+{% endblock %}

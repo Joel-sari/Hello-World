@@ -1,18 +1,19 @@
 # home/views.py
 
 from django.contrib.auth import authenticate, login, logout, get_user_model
-from django.contrib.auth.decorators import login_required
+from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django import forms
 from django.http import JsonResponse
 from django.conf import settings
-from django.db.models import Q
+from django.db.models import Q, Count
 from datetime import datetime
 import requests
+import json
 
 from .forms import SignUpForm, PinForm
-from .models import Pin, PinPhoto, Friendship
+from .models import Pin, PinPhoto, Friendship, Reaction
 
 User = get_user_model()
 MAX_PIN_PHOTOS = 5
@@ -119,12 +120,18 @@ def geocode_location(city, state, country):
     if not parts:
         return None
 
-    url = "https://api.opencagedata.com/geocode/vv1/json"
-    params = {"q": ", ".join(parts), "key": settings.OPENCAGE_API_KEY, "limit": 1}
+    # FIXED: correct OpenCage URL (v1, not vv1)
+    url = "https://api.opencagedata.com/geocode/v1/json"
+    params = {
+        "q": ", ".join(parts),
+        "key": settings.OPENCAGE_API_KEY,
+        "limit": 1,
+    }
 
     try:
-        data = requests.get(url, params=params, timeout=5).json()
-    except:
+        resp = requests.get(url, params=params, timeout=5)
+        data = resp.json()
+    except Exception:
         return None
 
     if not data.get("results"):
@@ -514,3 +521,63 @@ def my_photos(request):
     payload.sort(key=lambda p: p["createdAt"], reverse=True)
 
     return JsonResponse({"photos": payload})
+
+# =====================================================================
+# ADMIN POPULARITY DASHBOARD
+# =====================================================================
+
+def is_staff(user):
+    return user.is_staff
+
+
+@user_passes_test(is_staff)
+def popularity_dashboard(request):
+    # 1) Top countries by pin count
+    country_qs = (
+        Pin.objects
+        .values("country")
+        .annotate(pin_count=Count("id"))
+        .order_by("-pin_count")
+    )
+
+    total_pins = sum(row["pin_count"] for row in country_qs) or 1  # avoid div by zero
+
+    country_stats = []
+    for row in country_qs[:10]:  # Top 10
+        country = row["country"] or "Unknown"
+        pin_count = row["pin_count"]
+        percent = round(100 * pin_count / total_pins * 100) / 100  # round to 2 decimals
+        country_stats.append({
+            "country": country,
+            "pin_count": pin_count,
+            "percent": percent,
+        })
+
+    # 2) OPTIONAL: reactions per country
+    reaction_qs = (
+        Reaction.objects
+        .values("pin__country")
+        .annotate(reaction_count=Count("id"))
+        .order_by("-reaction_count")
+    )
+
+    reaction_stats = []
+    for row in reaction_qs:
+        country = row["pin__country"] or "Unknown"
+        reaction_stats.append({
+            "country": country,
+            "reaction_count": row["reaction_count"],
+        })
+
+    # Data for Chart.js
+    chart_labels = [row["country"] for row in country_stats]
+    chart_data = [row["pin_count"] for row in country_stats]
+
+    context = {
+        "country_stats": country_stats,
+        "reaction_stats": reaction_stats,
+        "total_pins": total_pins,
+        "chart_labels": json.dumps(chart_labels),
+        "chart_data": json.dumps(chart_data),
+    }
+    return render(request, "admin/popularity_dashboard.html", context)
