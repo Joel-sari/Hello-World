@@ -160,11 +160,48 @@
 {% block scripts %}
 <script>
   window.CURRENT_USER = "{{ user.username|escapejs }}";
-  window.ADD_PIN_URL = "{% url 'add_pin' %}";
+  window.ADD_PIN_URL = "/api/add-pin/";
   window.EDIT_PIN_BASE_URL = "/api/edit-pin/";
 </script>
 
 <script type="module" src="{% static 'home/js/main.js' %}"></script>
 <script src="{% static 'home/js/pin_modals.js' %}"></script>
 <script src="{% static 'home/js/friends.js' %}"></script>
+
+<!-- ⭐ DEBUG BLOCK: Detect dropdown click issues -->
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  //console.log("DEBUG: DOM Loaded");
+
+  const trigger = document.getElementById("profile-trigger");
+  const dropdown = document.getElementById("profile-dropdown");
+
+  //console.log("DEBUG: trigger =", trigger);
+  //console.log("DEBUG: dropdown =", dropdown);
+
+  if (!trigger) { console.log("ERROR: trigger NOT FOUND"); return; }
+  if (!dropdown) { console.log("ERROR: dropdown NOT FOUND"); return; }
+
+  // Visual debug aid
+  trigger.style.outline = "2px solid red";
+
+  // Log clickable area
+  const rect = trigger.getBoundingClientRect();
+  console.log("DEBUG: trigger bounding box:", rect);
+
+  // Click handler
+  trigger.addEventListener("click", (e) => {
+    console.log("DEBUG: Avatar CLICKED");
+    dropdown.classList.toggle("open");
+    console.log("DEBUG: dropdown classes =", dropdown.classList);
+  });
+
+  // Log other clicks
+  document.addEventListener("click", (e) => {
+    if (e.target !== trigger && !trigger.contains(e.target)) {
+      console.log("DEBUG: Click outside profile trigger:", e.target);
+    }
+  });
+});
+</script>
 {% endblock %}

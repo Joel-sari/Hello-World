@@ -120,18 +120,19 @@ def geocode_location(city, state, country):
     if not parts:
         return None
 
-    # FIXED: correct OpenCage URL (v1, not vv1)
+    # FIXED API URL (vv1 → v1)
     url = "https://api.opencagedata.com/geocode/v1/json"
     params = {
         "q": ", ".join(parts),
         "key": settings.OPENCAGE_API_KEY,
-        "limit": 1,
+        "limit": 1
     }
 
     try:
-        resp = requests.get(url, params=params, timeout=5)
-        data = resp.json()
-    except Exception:
+        response = requests.get(url, params=params, timeout=5)
+        data = response.json()
+    except Exception as e:
+        print("❌ GEOCODE ERROR:", e)
         return None
 
     if not data.get("results"):
@@ -139,7 +140,6 @@ def geocode_location(city, state, country):
 
     g = data["results"][0]["geometry"]
     return float(g["lat"]), float(g["lng"])
-
 
 @login_required
 def search_location(request):
@@ -381,50 +381,92 @@ def get_pin(request, pin_id):
     })
 
 
+import logging
+logger = logging.getLogger(__name__)
+
 @login_required
 def add_pin(request):
+    # =============================================
+    # DEBUG SECTION – LOG REQUEST DETAILS
+    # =============================================
+    print("\n===== ADD PIN DEBUG =====")
+    print("Request method:", request.method)
+    print("Headers:", dict(request.headers))
+    print("GET params:", request.GET)
+    print("POST params:", request.POST.dict())
+    print("FILES:", request.FILES)
+    print("=========================\n")
+
+    # If NOT POST → reject
     if request.method != "POST":
+        print("❌ DEBUG: Request was NOT POST — returning error")
         return JsonResponse({"error": "POST required"}, status=405)
 
+    print("✅ DEBUG: Request IS POST, continuing")
+
+    # =============================================
+    # FORM VALIDATION
+    # =============================================
     form = PinForm(request.POST, request.FILES)
+    print("Form valid?", form.is_valid())
+    print("Form errors:", form.errors)
+
     if not form.is_valid():
+        print("❌ DEBUG: Form validation failed — returning 400")
         return JsonResponse({"errors": form.errors}, status=400)
 
+    print("✅ DEBUG: Form is valid — saving base pin (commit=False)")
     temp_pin = form.save(commit=False)
 
+    # =============================================
+    # GEOCODING
+    # =============================================
     geo = geocode_location(temp_pin.city, temp_pin.state, temp_pin.country)
+    print("Geo result:", geo)
+
     if not geo:
-        return JsonResponse({"errors": {"location": ["Location not found"]}}, status=400)
+        print("❌ DEBUG: Geocode failed — returning 400")
+        return JsonResponse(
+            {"errors": {"location": ["Location not found"]}},
+            status=400,
+        )
 
     lat, lon = geo
     temp_pin.latitude = lat
     temp_pin.longitude = lon
     temp_pin.user = request.user
+
     temp_pin.save()
+    print(f"✅ DEBUG: Pin saved successfully — ID: {temp_pin.id}")
 
+    # =============================================
+    # MULTIPLE PHOTO HANDLING
+    # =============================================
     extra_files = request.FILES.getlist("photos")
-    for f in extra_files[: MAX_PIN_PHOTOS - temp_pin.photos.count()]:
+    print("Extra uploaded photo files:", extra_files)
+
+    from home.models import PinPhoto
+
+    for f in extra_files:
         PinPhoto.objects.create(pin=temp_pin, image=f)
+        print(f"📸 DEBUG: Saved extra photo: {f}")
 
-    cover_url = request.build_absolute_uri(temp_pin.image.url) if temp_pin.image else None
-    extra = [
-        {"id": p.id, "url": request.build_absolute_uri(p.image.url)}
-        for p in temp_pin.photos.all()
-    ]
+    print("===== END ADD PIN DEBUG =====\n")
 
+    # =============================================
+    # SUCCESS RESPONSE
+    # =============================================
     return JsonResponse({
+        "success": True,
         "id": temp_pin.id,
-        "lat": temp_pin.latitude,
-        "lon": temp_pin.longitude,
-        "caption": temp_pin.caption or "",
-        "imageUrl": cover_url,
-        "photos": extra,
-        "user": request.user.username,
         "city": temp_pin.city,
         "state": temp_pin.state,
         "country": temp_pin.country,
-        "isOwner": True,
+        "caption": temp_pin.caption,
+        "lat": temp_pin.latitude,
+        "lon": temp_pin.longitude,
     })
+
 
 
 @login_required

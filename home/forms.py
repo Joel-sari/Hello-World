@@ -23,7 +23,9 @@ class SignUpForm(UserCreationForm):
         for field in self.fields.values():
             field.widget.attrs.update({"class": "field"})
 
+
 class PinForm(forms.ModelForm):
     class Meta:
         model = Pin
-        fields = ["city", "state", "country", "caption", "image"]
+        # IMPORTANT: remove "image" because your modal does not send it
+        fields = ["city", "state", "country", "caption"]
