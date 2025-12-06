@@ -1,0 +1,84 @@
+{% extends "admin/base_site.html" %}
+{% load static %}
+
+{% block title %}Popularity Dashboard{% endblock %}
+
+{% block content %}
+<h1>Location Popularity</h1>
+<p>Total pins: {{ total_pins }}</p>
+
+<h2>Top 10 Countries by Pins</h2>
+
+{% if country_stats %}
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Country</th>
+            <th>Pin Count</th>
+            <th>Percent of Total</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in country_stats %}
+        <tr>
+            <td>{{ forloop.counter }}</td>
+            <td>{{ row.country }}</td>
+            <td>{{ row.pin_count }}</td>
+            <td>{{ row.percent }}%</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% else %}
+<p>No pins yet.</p>
+{% endif %}
+
+<h2>Pins by Country (Chart)</h2>
+<canvas id="pinChart" width="400" height="200"></canvas>
+
+{% if reaction_stats %}
+<h2>Reactions per Country (Optional)</h2>
+<table class="admin-table">
+    <thead>
+        <tr>
+            <th>Country</th>
+            <th>Reaction Count</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for row in reaction_stats %}
+        <tr>
+            <td>{{ row.country }}</td>
+            <td>{{ row.reaction_count }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // chart_labels and chart_data are JSON strings from the view
+    const labels = JSON.parse('{{ chart_labels|escapejs }}');
+    const dataValues = JSON.parse('{{ chart_data|escapejs }}');
+
+    const ctx = document.getElementById('pinChart').getContext('2d');
+    const pinChart = new Chart(ctx, {
+        type: 'bar',  // change to 'pie' if you prefer
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Pins per Country',
+                data: dataValues,
+            }]
+        },
+        options: {
+            responsive: true,
+            plugins: {
+                legend: { display: false }
+            }
+        }
+    });
+</script>
+{% endblock %}
