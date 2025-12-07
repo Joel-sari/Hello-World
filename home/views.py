@@ -840,3 +840,45 @@ def edit_profile(request):
 
     return JsonResponse({"status": "ok"})
 
+@login_required
+def friends_pins(request):
+    # 1) get accepted friendships involving me
+    accepted = Friendship.objects.filter(
+        Q(from_user=request.user) | Q(to_user=request.user),
+        status="accepted"
+    ).select_related("from_user", "to_user")
+
+    # 2) collect friend user objects
+    friend_users = []
+    for f in accepted:
+        other = f.to_user if f.from_user == request.user else f.from_user
+        friend_users.append(other)
+
+    # 3) fetch all pins from those friends
+    pins_qs = (
+        Pin.objects.filter(user__in=friend_users)
+        .select_related("user")
+        .prefetch_related("photos")
+    )
+
+    data = []
+    for pin in pins_qs:
+        cover = request.build_absolute_uri(pin.image.url) if pin.image else None
+        extra = [request.build_absolute_uri(p.image.url) for p in pin.photos.all()]
+
+        data.append({
+            "id": pin.id,
+            "lat": pin.latitude,
+            "lon": pin.longitude,
+            "caption": pin.caption or "",
+            "imageUrl": cover,
+            "photos": extra,
+            "photoCount": (1 if cover else 0) + len(extra),
+            "user": pin.user.username,
+            "city": pin.city,
+            "state": pin.state,
+            "country": pin.country,
+            "isOwner": False,
+        })
+
+    return JsonResponse({"pins": data})

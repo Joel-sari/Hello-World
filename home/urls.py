@@ -39,6 +39,9 @@ urlpatterns = [
 
     # === REACTION API ===
     path("api/react/<int:pin_id>/", views.react_to_pin, name="react_to_pin"),
+
+    # === View MANY OF YOUR FRIENDS' Pins ==
+    path("api/friends-pins/", views.friends_pins, name="friends_pins"),
     
 
 ]
