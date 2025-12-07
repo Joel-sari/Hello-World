@@ -1,0 +1,40 @@
+<div id="editProfileModal" class="modal">
+  <div class="modal-content" style="width:340px;">
+      <style>
+          #editProfileForm label {
+            display: block;
+            margin-top: 10px;
+            font-weight: 600;
+          }
+
+          #editProfileForm input[type="text"],
+          #editProfileForm textarea {
+            width: 100%;
+            margin-top: 4px;
+            padding: 6px;
+            border-radius: 6px;
+            border: 1px solid #ccc;
+          }
+        </style>
+
+    <h3>Edit Profile</h3>
+
+    <form id="editProfileForm" enctype="multipart/form-data">
+      {% csrf_token %}
+
+      <label>Username</label>
+      <input type="text" name="username" value="{{ user.username }}" />
+
+      <label>Bio</label>
+      <textarea name="bio" rows="3">{{ user.profile.bio }}</textarea>
+
+      <label>Avatar</label>
+      <input type="file" name="avatar" accept="image/*" />
+
+      <div class="modal-buttons">
+        <button type="button" id="cancelEditProfile">Cancel</button>
+        <button type="submit" id="saveEditProfile">Save</button>
+      </div>
+    </form>
+  </div>
+</div>

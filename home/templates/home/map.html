@@ -37,12 +37,14 @@
   <!-- 👤 PROFILE MENU -->
   <div class="profile-menu">
     <button id="profile-trigger" class="profile-trigger" type="button">
-      <div class="profile-avatar">
-        <img src="{% static 'home/img/default-avatar.png' %}"
-             alt="{{ user.username }} avatar"
-             onerror="this.style.display='none'; this.parentElement.classList.add('profile-avatar--fallback');" />
+    <div class="profile-avatar">
+        <img
+            src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}{% static 'home/img/default-avatar.png' %}{% endif %}"
+            alt="{{ user.username }} avatar"
+            onerror="this.style.display='none'; this.parentElement.classList.add('profile-avatar--fallback');"
+        />
         <span class="profile-avatar-initial">{{ user.username|first|upper }}</span>
-      </div>
+    </div>
     </button>
 
     <div id="profile-dropdown" class="profile-dropdown">
@@ -67,6 +69,11 @@
         View Gallery
       </button>
 
+      <!-- EDIT PROFILE -->
+        <button class="profile-dropdown-item" id="edit-profile-btn">
+          Edit Profile
+        </button>
+
       <!-- LOG OUT -->
       <button class="profile-dropdown-item profile-dropdown-item--danger"
               onclick="window.location.href='{% url 'logout' %}'">
@@ -84,6 +91,7 @@
 {% include "home/ui_components/pin_details.html" %}
 {% include "home/ui_components/edit_pin.html" %}
 {% include "home/ui_components/friends.html" %}
+{% include "home/ui_components/edit_profile.html" %}
 
 {% endblock %}
 

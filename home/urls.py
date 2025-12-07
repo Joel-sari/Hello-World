@@ -32,7 +32,7 @@ urlpatterns = [
     path("api/friends/", views.friend_list, name="friend_list"),
     path("api/friend-remove/<int:friendship_id>/", views.friend_remove, name="friend_remove"),
     path("api/pins/<str:username>/", views.user_pins, name="user_pins"),
-
+    path("api/edit-profile/", views.edit_profile, name="edit_profile"),
 
 ]
 
