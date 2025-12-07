@@ -34,6 +34,10 @@ urlpatterns = [
     path("api/pins/<str:username>/", views.user_pins, name="user_pins"),
     path("api/edit-profile/", views.edit_profile, name="edit_profile"),
 
+    # === REACTION API ===
+    path("api/react/<int:pin_id>/", views.react_to_pin, name="react_to_pin"),
+    
+
 ]
 
 urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)

@@ -2,6 +2,7 @@
 
 from django.contrib.auth import authenticate, login, logout, get_user_model
 from django.contrib.auth.decorators import login_required, user_passes_test
+from django.views.decorators.http import require_http_methods
 from django.shortcuts import redirect, render, get_object_or_404
 from django.contrib import messages
 from django import forms
@@ -11,7 +12,6 @@ from django.db.models import Q, Count
 from datetime import datetime
 import requests
 import json
-from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Profile
 
@@ -370,6 +370,23 @@ def get_pin(request, pin_id):
         for photo in pin.photos.all()
     ]
 
+    # --- Reaction aggregation ---
+    reaction_rows = (
+        Reaction.objects
+        .filter(pin=pin)
+        .values("emoji")
+        .annotate(c=Count("id"))
+    )
+
+    reaction_counts = {row["emoji"]: row["c"] for row in reaction_rows}
+
+    # Optional: ensure all emojis exist in the dict
+    for k in ["like", "love", "laugh", "wow"]:
+        reaction_counts.setdefault(k, 0)
+
+    user_reaction_obj = Reaction.objects.filter(pin=pin, user=request.user).first()
+    user_reaction = user_reaction_obj.emoji if user_reaction_obj else None
+
     return JsonResponse({
         "id": pin.id,
         "lat": pin.latitude,
@@ -381,6 +398,8 @@ def get_pin(request, pin_id):
         "city": pin.city,
         "state": pin.state,
         "country": pin.country,
+        "reaction_counts": reaction_counts,
+        "user_reaction": user_reaction,
     })
 
 
@@ -666,3 +685,76 @@ def edit_profile(request):
     profile.save()
 
     return JsonResponse({"success": True})
+
+
+#REACTION TO PINS VIEW!
+@login_required
+@require_http_methods(["GET", "POST"])
+def react_to_pin(request, pin_id):
+    pin = get_object_or_404(Pin, id=pin_id)
+
+    valid = {"like", "love", "laugh", "wow"}
+
+    # ----------------------------
+    # GET = return current counts + this user's reaction
+    # ----------------------------
+    if request.method == "GET":
+        reaction_rows = (
+            Reaction.objects
+            .filter(pin=pin)
+            .values("emoji")
+            .annotate(c=Count("id"))
+        )
+        reaction_counts = {row["emoji"]: row["c"] for row in reaction_rows}
+        for k in valid:
+            reaction_counts.setdefault(k, 0)
+
+        user_obj = Reaction.objects.filter(pin=pin, user=request.user).first()
+        user_reaction = user_obj.emoji if user_obj else None
+
+        return JsonResponse({
+            "pin_id": pin.id,
+            "reaction_counts": reaction_counts,
+            "user_reaction": user_reaction,
+        })
+
+    # ----------------------------
+    # POST = set/update user's reaction
+    # Supports FormData OR JSON body
+    # ----------------------------
+    emoji = request.POST.get("emoji")
+
+    if not emoji:
+        try:
+            body = json.loads(request.body.decode("utf-8"))
+            emoji = body.get("emoji")
+        except Exception:
+            emoji = None
+
+    if emoji not in valid:
+        return JsonResponse({"error": "Invalid emoji"}, status=400)
+
+    # Update or create the user's reaction for this pin
+    Reaction.objects.update_or_create(
+        pin=pin,
+        user=request.user,
+        defaults={"emoji": emoji}
+    )
+
+    # Recompute counts after update
+    reaction_rows = (
+        Reaction.objects
+        .filter(pin=pin)
+        .values("emoji")
+        .annotate(c=Count("id"))
+    )
+    reaction_counts = {row["emoji"]: row["c"] for row in reaction_rows}
+    for k in valid:
+        reaction_counts.setdefault(k, 0)
+
+    return JsonResponse({
+        "ok": True,
+        "pin_id": pin.id,
+        "reaction_counts": reaction_counts,
+        "user_reaction": emoji,
+    })

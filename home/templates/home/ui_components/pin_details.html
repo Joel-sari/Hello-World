@@ -55,30 +55,35 @@
 
   
 
-    <!-- MAIN REACTION TRIGGER -->
-<div id="reactionTrigger"
-     style="display:flex; align-items:center; gap:8px; margin-top:12px;
-            cursor:pointer; user-select:none;">
-  <span id="userReaction" style="font-size:20px;">👍</span>
-  <span id="reactionSummary"
-        style="font-size:14px; color:#0f766e; opacity:0.9;">
-    React
-  </span>
-</div>
+  <!-- =========================
+      REACTIONS (Facebook-style)
+      - If total = 0 => show pill
+      - If total > 0 => show compact summary
+  ========================= -->
 
-<!-- POPUP REACTION BAR (hidden by default) -->
-<div id="reactionPopup">
-  <span class="popup-react" data-emoji="like"  style="font-size:26px; cursor:pointer;">👍</span>
-  <span class="popup-react" data-emoji="love"  style="font-size:26px; cursor:pointer;">❤️</span>
-  <span class="popup-react" data-emoji="laugh" style="font-size:26px; cursor:pointer;">😂</span>
-  <span class="popup-react" data-emoji="wow"   style="font-size:26px; cursor:pointer;">😮</span>
-</div>
+  <div id="reactionSection">
 
-<!-- Reaction Counts -->
-<div id="reactionCounts"
-     style="display:flex; gap:12px; justify-content:center;
-            font-size:14px; color:#0f766e; margin-top:20px;">
-</div>
+    <!-- Pill trigger (default look when no reactions yet) -->
+    <div id="reactionTrigger" class="reaction-pill">
+      <span id="userReaction" class="reaction-pill__icon">👍</span>
+      <span id="reactionSummary" class="reaction-pill__text">React</span>
+    </div>
+
+    <!-- Compact summary (shows AFTER at least 1 reaction) -->
+    <div id="reactionCompact" class="reaction-compact hidden">
+      <div id="reactionCompactIcons" class="reaction-compact__icons"></div>
+      <span id="reactionTotalCount" class="reaction-compact__total"></span>
+    </div>
+
+  </div>
+
+  <!-- POPUP REACTION BAR -->
+  <div id="reactionPopup">
+    <span class="popup-react" data-emoji="like">👍</span>
+    <span class="popup-react" data-emoji="love">❤️</span>
+    <span class="popup-react" data-emoji="laugh">😂</span>
+    <span class="popup-react" data-emoji="wow">😮</span>
+  </div>
     <!-- Caption Label + Text (inline) -->
     <div style="display:flex; align-items:baseline; gap:6px; margin-bottom:18px; font-family:Inter, system-ui;">
       <span style="font-size:13px; color:#0f766e; font-weight:600;">

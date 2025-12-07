@@ -320,3 +320,90 @@
     line-height: 1.4;
     margin-bottom: 22px;      /* creates better spacing before first input */
 }
+
+/* ===============================
+   Reactions — Facebook-style UI
+================================ */
+
+/* Utility local hidden (safe even if you also use .modal.hidden) */
+.hidden {
+  display: none !important;
+}
+
+/* Wrapper spacing so it doesn't feel clunky */
+#reactionSection {
+  margin-top: 14px;
+  margin-bottom: 10px;
+  display: flex;
+  justify-content: flex-start;
+  padding-left: 2px; /* subtle spacing */
+}
+
+/* PILL (default state when no one reacted yet) */
+.reaction-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  padding: 8px 14px;
+  border-radius: 9999px;
+
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: rgba(15, 23, 42, 0.6);
+
+  color: #0f766e;
+  cursor: pointer;
+  user-select: none;
+
+  transition: transform 120ms ease, border-color 120ms ease, background 120ms ease;
+}
+
+.reaction-pill:hover {
+  transform: translateY(-1px);
+  border-color: rgba(45, 212, 191, 0.65);
+  background: rgba(15, 23, 42, 0.8);
+}
+
+.reaction-pill__icon {
+  font-size: 20px;
+}
+
+.reaction-pill__text {
+  font-size: 14px;
+  font-weight: 500;
+  opacity: 0.95;
+}
+
+/* COMPACT SUMMARY (state when total > 0) */
+.reaction-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+
+  padding: 8px 14px;
+  border-radius: 9999px;
+
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  background: rgba(15, 23, 42, 0.65);
+
+  color: #0f766e;
+  cursor: pointer;
+  user-select: none;
+}
+
+.reaction-compact__icons {
+  display: inline-flex;
+  align-items: center;
+}
+
+.reaction-compact__icons span {
+  font-size: 18px;
+  margin-left: -6px; /* slight overlap like FB */
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.25));
+}
+
+.reaction-compact__total {
+  font-size: 13px;
+  font-weight: 600;
+  opacity: 0.9;
+}
