@@ -1,17 +1,17 @@
-<div id="editProfileModal" class="modal">
+<div id="editProfileModal" class="modal hidden">
   <div class="modal-content" style="width:340px;">
       <style>
           #editProfileForm label {
             display: block;
-            margin-top: 10px;
+            margin-top: 12px;
             font-weight: 600;
+            color: #e2e8f0;
           }
-
           #editProfileForm input[type="text"],
           #editProfileForm textarea {
             width: 100%;
             margin-top: 4px;
-            padding: 6px;
+            padding: 1.5px;
             border-radius: 6px;
             border: 1px solid #ccc;
           }
@@ -32,8 +32,8 @@
       <input type="file" name="avatar" accept="image/*" />
 
       <div class="modal-buttons">
-        <button type="button" id="cancelEditProfile">Cancel</button>
-        <button type="submit" id="saveEditProfile">Save</button>
+        <button type="button" id="cancelEditProfile" class="btn-secondary">Cancel</button>
+        <button type="submit" id="saveEditProfile" class="btn-primary">Save</button>
       </div>
     </form>
   </div>

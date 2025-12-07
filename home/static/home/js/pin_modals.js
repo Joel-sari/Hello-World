@@ -54,6 +54,9 @@ document.addEventListener("DOMContentLoaded", () => {
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
 
+    /* 🚀 Immediately close modal on Save click */
+    closeModal();
+
     const formData = new FormData(form);
 
     let url = window.ADD_PIN_URL; // "/api/add-pin/"
@@ -61,6 +64,7 @@ document.addEventListener("DOMContentLoaded", () => {
       url = `${window.EDIT_PIN_BASE_URL}${currentPinId}/`;
     }
 
+    /* Fire-and-forget save request */
     const res = await fetch(url, {
       method: "POST",
       headers: {
@@ -79,7 +83,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const data = await res.json();
 
-    closeModal(); // smooth fade-out
     form.reset();
 
     if (window.addPinToGlobe) {
@@ -118,4 +121,71 @@ document.addEventListener("DOMContentLoaded", () => {
 
     openModal(); // smooth fade-in
   };
+});
+
+// ===============================
+// EDIT PROFILE MODAL HANDLING
+// ===============================
+document.addEventListener("DOMContentLoaded", () => {
+  const editModal = document.getElementById("editProfileModal");
+  const editForm = document.getElementById("editProfileForm");
+  const cancelBtn = document.getElementById("cancelEditProfile");
+  // Open trigger from the profile dropdown
+  const openEditBtn = document.getElementById("edit-profile-btn"); // if you have a button/link to open it
+
+  // Smoothly open the Edit Profile modal
+  function openEditModal() {
+    if (!editModal) return;
+    editModal.classList.remove("hidden");
+    void editModal.offsetWidth; // force reflow so transition applies
+    editModal.classList.add("modal-visible");
+  }
+
+  // Smoothly close the Edit Profile modal
+  function closeEditModal() {
+    if (!editModal) return;
+    editModal.classList.remove("modal-visible");
+    setTimeout(() => editModal.classList.add("hidden"), 250); // match CSS transition
+  }
+
+  // Open trigger (if you have one)
+  if (openEditBtn) {
+    openEditBtn.addEventListener("click", openEditModal);
+  }
+
+  // Cancel button closes modal
+  if (cancelBtn) {
+    cancelBtn.addEventListener("click", closeEditModal);
+  }
+
+  // Save (submit) closes modal immediately, then sends request
+  if (editForm) {
+    editForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      // 🚀 Close as soon as Save is clicked
+      closeEditModal();
+
+      const formData = new FormData(editForm);
+
+      const res = await fetch("/edit-profile/", {
+        method: "POST",
+        headers: {
+          "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+            .value,
+          "X-Requested-With": "XMLHttpRequest",
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        console.error("Edit profile error:", res);
+        alert("Failed to update profile.");
+        return;
+      }
+
+      // On success, just reload the page so avatar/username/bio update
+      window.location.reload();
+    });
+  }
 });
