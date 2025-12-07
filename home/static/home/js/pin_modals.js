@@ -1,6 +1,7 @@
 // home/static/home/js/pin_modals.js
 // ------------------------------------------------------
 // Handles Add/Edit Pin modal + AJAX POST submission
+// Now includes smooth fade-in / fade-out transitions
 // ------------------------------------------------------
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -12,19 +13,41 @@ document.addEventListener("DOMContentLoaded", () => {
   let mode = "add";
   let currentPinId = null;
 
+  // 🔥 Helper: Smoothly open modal
+  function openModal() {
+    // Remove hidden state first
+    modal.classList.remove("hidden");
+
+    // Force a layout reflow so the transition applies correctly
+    void modal.offsetWidth;
+
+    // Add visible state
+    modal.classList.add("modal-visible");
+  }
+
+  /* Helper: Smoothly close modal */
+  function closeModal() {
+    // Start fade-out
+    modal.classList.remove("modal-visible");
+
+    // After transition ends, hide it fully
+    setTimeout(() => {
+      modal.classList.add("hidden");
+    }, 250); // match CSS transition time
+  }
   // OPEN ADD PIN MODAL
   if (addBtn) {
     addBtn.onclick = () => {
       mode = "add";
       currentPinId = null;
       form.reset();
-      modal.classList.remove("hidden");
+      openModal(); // smooth open
     };
   }
 
   // CLOSE MODAL
   if (closeBtn) {
-    closeBtn.onclick = () => modal.classList.add("hidden");
+    closeBtn.onclick = () => closeModal(); // smooth close
   }
 
   // SUBMIT FORM
@@ -41,10 +64,9 @@ document.addEventListener("DOMContentLoaded", () => {
     const res = await fetch(url, {
       method: "POST",
       headers: {
-        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]").value,
-
-        // 🔥 REQUIRED FOR DJANGO TO RECOGNIZE AJAX POST
-        "X-Requested-With": "XMLHttpRequest",
+        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")
+          .value,
+        "X-Requested-With": "XMLHttpRequest", // required for Django AJAX
       },
       body: formData,
     });
@@ -57,7 +79,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const data = await res.json();
 
-    modal.classList.add("hidden");
+    closeModal(); // smooth fade-out
     form.reset();
 
     if (window.addPinToGlobe) {
@@ -69,6 +91,15 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // OPEN EDIT PIN MODAL
   window.openEditModal = async function (pinId) {
+    // Close details modal if open
+    const details = document.getElementById("pinDetailsModal");
+    if (details) {
+      details.classList.remove("show");
+      details.classList.add("hidden");
+    }
+
+    if (typeof hideReactionPopup === "function") hideReactionPopup();
+
     currentPinId = pinId;
     mode = "edit";
 
@@ -85,6 +116,6 @@ document.addEventListener("DOMContentLoaded", () => {
     form.querySelector("[name=country]").value = data.country || "";
     form.querySelector("[name=caption]").value = data.caption || "";
 
-    modal.classList.remove("hidden");
+    openModal(); // smooth fade-in
   };
 });

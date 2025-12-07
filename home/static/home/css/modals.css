@@ -1,0 +1,299 @@
+/*
+  Modal System Styles (modals.css)
+
+  Purpose:
+  - Provide a shared, consistent modal/overlay system for:
+      • Add Pin (#pinModal)
+      • Pin Details (#pinDetailsModal)
+      • Edit Pin (#editPinModal)
+      • Friends (#friendsModal)
+  - Reduce inline <style> blocks and inline style attributes over time.
+  - Avoid accidental cross-modal overrides (e.g., generic .modal.show rules).
+
+  Expected usage:
+  - Load this after style.css and after map.css on the map page.
+  - Use the shared class convention:
+      .modal.hidden  -> hidden state
+      .modal         -> visible state (default flex)
+*/
+
+/* ===============================
+   1) Shared Overlay + Container
+================================ */
+
+.modal {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  z-index: 50;
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+
+  background:
+    radial-gradient(circle at top, rgba(45, 212, 191, 0.18), transparent 50%),
+    rgba(15, 23, 42, 0.75);
+}
+
+.modal.hidden {
+  
+    opacity: 0;
+    pointer-events: none;   /* prevent clicking during fade */
+    transform: scale(0.98); /* slight zoom for smoothness */
+    transition: opacity 0.25s ease, transform 0.25s ease;
+
+}
+/* Visible state */
+.modal-visible {
+    opacity: 1;
+    pointer-events: auto;
+    transform: scale(1);
+}
+
+/* Base card styling */
+.modal .modal-content {
+  width: 100%;
+  max-width: 480px;
+
+  background:
+    radial-gradient(circle at top left, rgba(34, 211, 238, 0.10), transparent 55%),
+    rgba(15, 23, 42, 0.98);
+
+  border-radius: 20px;
+  padding: 24px 24px 20px;
+
+  color: #e2e8f0;
+  border: 1px solid rgba(45, 212, 191, 0.35);
+
+  box-shadow:
+    0 24px 60px rgba(15, 23, 42, 0.65),
+    0 0 0 1px rgba(148, 163, 184, 0.18);
+
+  position: relative;
+}
+
+/* Optional glow bar for “premium” look */
+.modal .modal-content::before {
+  content: "";
+  position: absolute;
+  top: -10px;
+  left: 32px;
+
+  width: 68px;
+  height: 4px;
+
+  border-radius: 9999px;
+  background: linear-gradient(90deg, #22d3ee, #14b8a6, #38bdf8);
+  box-shadow: 0 0 18px rgba(45, 212, 191, 0.9);
+}
+
+/* ===============================
+   2) Shared Form Field System
+================================ */
+
+.modal .field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.modal label {
+  font-size: 0.80rem;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+.modal input[type="text"],
+.modal input[type="file"] {
+  width: 100%;
+  min-height: 44px;
+
+  padding: 10px 14px;
+  border-radius: 12px;
+
+  border: 1px solid rgba(148, 163, 184, 0.4);
+  background: rgba(15, 23, 42, 0.9);
+  color: #e5e7eb;
+
+  outline: none;
+}
+
+.modal input[type="text"]::placeholder {
+  color: rgba(148, 163, 184, 0.75);
+}
+
+/* File button styling (modern browsers) */
+.modal input[type="file"]::file-selector-button {
+  margin-right: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+
+  transition: background 0.15s ease, border 0.15s ease, transform 0.12s ease;
+}
+
+.modal input[type="file"]::file-selector-button:hover {
+  background: rgba(15, 23, 42, 1);
+  border-color: rgba(45, 212, 191, 0.5);
+  transform: translateY(-1px);
+}
+
+/* Safari fallback */
+.modal input[type="file"]::-webkit-file-upload-button {
+  margin-right: 12px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background: rgba(15, 23, 42, 0.85);
+  color: #e2e8f0;
+
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+/* ===============================
+   3) Shared Button System
+================================ */
+
+.modal .modal-buttons {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #0f766e, #14b8a6, #22d3ee);
+  border: none;
+
+  padding: 7px 16px;
+  border-radius: 9999px;
+
+  color: white;
+  font-size: 0.85rem;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+.btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(148, 163, 184, 0.5);
+
+  padding: 7px 16px;
+  border-radius: 9999px;
+
+  color: #cbd5f5;
+  font-size: 0.85rem;
+  font-weight: 500;
+
+  cursor: pointer;
+}
+
+/* Small utility if you want left/right actions */
+.modal .modal-actions-split {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+/* ===============================
+   4) Per-Modal Sizing Overrides
+================================ */
+
+/* Add Pin */
+#pinModal .modal-content {
+  max-width: 480px;
+}
+
+/* Pin Details */
+#pinDetailsModal .modal-content {
+  max-width: 350px;
+}
+
+/* Edit Pin (if you have this ID) */
+#editPinModal .modal-content {
+  max-width: 420px;
+}
+
+/* Friends */
+#friendsModal .modal-content {
+  max-width: 760px;
+}
+
+/* ===============================
+   5) Friends Modal Layout Helpers
+================================ */
+
+#friendsModal .friends-flex {
+  display: flex;
+  gap: 24px;
+  transition: all 0.25s ease;
+}
+
+@media (max-width: 700px) {
+  #friendsModal .friends-flex {
+    flex-direction: column;
+  }
+}
+
+#reactionPopup {
+  position: fixed;
+  z-index: 70;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+
+  padding: 14px 18px;
+  border-radius: 9999px;
+
+  /*Matching our dark/teal theme */
+  background: radial-gradient(
+      circle at 25% 30%,
+      rgba(45, 212, 191, 0.18),
+      rgba(15, 23, 42, 0.98) 55%,
+      rgba(2, 44, 43, 0.98)
+    );
+
+  border: 1px solid rgba(45, 212, 191, 0.35);
+  box-shadow:
+    0 10px 30px rgba(0, 0, 0, 0.35),
+    0 0 0 1px rgba(45, 212, 191, 0.08),
+    0 0 22px rgba(45, 212, 191, 0.18);
+
+  backdrop-filter: blur(16px) saturate(140%);
+  -webkit-backdrop-filter: blur(16px) saturate(140%);
+
+  opacity: 0;
+  pointer-events: none;
+
+  /* Lower it slightly*/
+  transform: translateY(30px);
+
+  transition:
+    opacity 140ms ease,
+    transform 140ms ease,
+    box-shadow 180ms ease;
+}
+
+/* Polish for emoji hover feel */
+#reactionPopup .popup-react {
+  filter: drop-shadow(0 2px 6px rgba(0, 0, 0, 0.25));
+  transition: transform 120ms ease, filter 120ms ease;
+}
+
+#reactionPopup .popup-react:hover {
+  transform: scale(1.22);
+  filter: drop-shadow(0 4px 10px rgba(45, 212, 191, 0.25));
+}
+
+
+
