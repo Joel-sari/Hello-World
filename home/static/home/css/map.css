@@ -25,32 +25,7 @@
   - Should be imported after style.css so these rules can override
     any global defaults that conflict with the map UI.
 */
-.modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-  }
 
-  .modal.show {
-    display: flex;
-  }
-
-  .modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-  }
-
-  .modal-buttons {
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-    margin-top: 12px;
-  }
 
   /* 🌍 Top toolbar: search + Add Pin + Logout */
   .map-toolbar {
