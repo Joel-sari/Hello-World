@@ -120,16 +120,26 @@ class Friendship(models.Model):
 
 
 class Profile(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE)
-    bio = models.TextField(blank=True, null=True)
-    avatar = models.ImageField(upload_to="avatars/", blank=True, null=True)
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name="profile")
 
-    def __str__(self):
-        return f"{self.user.username} Profile"
+    full_name = models.CharField(max_length=100, blank=True)
+    favorite_country = models.CharField(max_length=100, blank=True)
+    bio = models.TextField(blank=True)
+
+    # Generated avatar fields
+    avatar_style = models.CharField(max_length=50, default="pixel-art")
+    avatar_seed = models.CharField(max_length=100, default="", blank=True)
+
+    # Uploaded image avatar
+    avatar_upload = models.ImageField(upload_to="avatars/", blank=True, null=True)
+
+
 
 @receiver(post_save, sender=User)
-def create_or_update_user_profile(sender, instance, created, **kwargs):
+def create_profile_for_new_user(sender, instance, created, **kwargs):
     if created:
-        Profile.objects.create(user=instance)
-    else:
-        instance.profile.save()
+        Profile.objects.create(
+            user=instance,
+            avatar_seed=instance.username or "",
+            avatar_style="pixel-art",
+        )

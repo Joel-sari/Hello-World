@@ -10,6 +10,7 @@ document.addEventListener("DOMContentLoaded", () => {
   const closeBtn = document.getElementById("closeModal");
   const form = document.getElementById("pinForm");
 
+
   let mode = "add";
   let currentPinId = null;
 
@@ -188,4 +189,182 @@ document.addEventListener("DOMContentLoaded", () => {
       window.location.reload();
     });
   }
+});
+
+
+
+
+
+
+// ------------------------------------------------------------
+//  PIN MODALS + EDIT PROFILE MODAL (ALL INSIDE DOMContentLoaded)
+// ------------------------------------------------------------
+
+document.addEventListener("DOMContentLoaded", () => {
+    console.log("DEBUG: DOM Loaded");
+
+    // =============================================================
+    //  PIN MODAL LOGIC  (unchanged)
+    // =============================================================
+    const modal = document.getElementById("pinModal");
+    const addBtn = document.getElementById("addPinBtn");
+    const closeBtn = document.getElementById("closeModal");
+    const form = document.getElementById("pinForm");
+
+    if (addBtn && modal) {
+        addBtn.addEventListener("click", () => {
+            modal.classList.remove("hidden");
+        });
+    }
+    if (closeBtn && modal) {
+        closeBtn.addEventListener("click", () => {
+            modal.classList.add("hidden");
+        });
+    }
+
+
+    // =============================================================
+    //  ⭐ EDIT PROFILE MODAL LOGIC
+    // =============================================================
+
+    const editProfileLink = document.getElementById("edit-profile-link");
+    const editProfileModal = document.getElementById("editProfileModal");
+    const closeProfileModal = document.getElementById("cancelEditProfile");
+    const editProfileForm = document.getElementById("editProfileForm");
+
+    const preview = document.getElementById("profile-avatar-preview");
+    const styleSelect = document.getElementById("avatar-style-select");
+    const seedInput = document.getElementById("avatar-seed-input");
+    const shuffleBtn = document.getElementById("shuffle-avatar-btn");
+
+    const uploadInput = document.getElementById("avatar-upload-input");
+    const generatedControls = document.getElementById("generated-avatar-controls");
+    const uploadControls = document.getElementById("upload-avatar-controls");
+    const modeRadios = document.querySelectorAll("input[name='avatar_mode']");
+    const topRightAvatar = document.getElementById("profile-avatar-img");
+
+    function getCSRF() {
+        const el = document.querySelector("[name=csrfmiddlewaretoken]");
+        return el ? el.value : "";
+    }
+
+    function buildUrl(style, seed) {
+        return `https://api.dicebear.com/9.x/${style}/svg?seed=${encodeURIComponent(seed)}`;
+    }
+
+
+    // ------------------------------
+    //  OPEN EDIT PROFILE MODAL
+    // ------------------------------
+    if (editProfileLink && editProfileModal) {
+        editProfileLink.addEventListener("click", async () => {
+            console.log("DEBUG: Edit Profile clicked");
+
+            const res = await fetch("/api/profile/");
+            const data = await res.json();
+
+            // Fill text inputs
+            document.getElementById("full-name-input").value = data.full_name || "";
+            document.getElementById("favorite-country-input").value = data.favorite_country || "";
+            document.getElementById("bio-input").value = data.bio || "";
+
+            // Fill avatar choices
+            styleSelect.value = data.avatar_style || "pixel-art";
+            seedInput.value = data.avatar_seed || "";
+
+            preview.src = buildUrl(styleSelect.value, seedInput.value);
+
+            // Show modal
+            editProfileModal.classList.remove("hidden");
+        });
+    }
+
+
+    // ------------------------------
+    //  CLOSE EDIT PROFILE MODAL
+    // ------------------------------
+    if (editProfileLink && editProfileModal) {
+        editProfileLink.addEventListener("click", async (e) => {
+            e.stopPropagation();  // ⭐ FIX: prevents dropdown from instantly closing
+
+            console.log("DEBUG: Edit Profile clicked");
+
+            const res = await fetch("/api/profile/");
+            const data = await res.json();
+
+            // Fill fields...
+            editProfileModal.classList.remove("hidden");
+        });
+    }
+
+
+    // ------------------------------
+    //  TOGGLE AVATAR MODES
+    // ------------------------------
+    modeRadios.forEach(radio => {
+        radio.addEventListener("change", () => {
+            if (radio.value === "generated") {
+                generatedControls.style.display = "block";
+                uploadControls.style.display = "none";
+                preview.src = buildUrl(styleSelect.value, seedInput.value);
+            } else {
+                generatedControls.style.display = "none";
+                uploadControls.style.display = "block";
+            }
+        });
+    });
+
+
+    // ------------------------------
+    //  SHUFFLE AVATAR
+    // ------------------------------
+    if (shuffleBtn) {
+        shuffleBtn.addEventListener("click", () => {
+            const newSeed = "seed-" + Date.now() + "-" + Math.random().toString(36).substring(2, 9);
+            seedInput.value = newSeed;
+            preview.src = buildUrl(styleSelect.value, newSeed);
+        });
+    }
+
+
+    // ------------------------------
+    //  UPLOAD PREVIEW
+    // ------------------------------
+    if (uploadInput) {
+        uploadInput.addEventListener("change", () => {
+            const file = uploadInput.files[0];
+            if (file) preview.src = URL.createObjectURL(file);
+        });
+    }
+
+
+    // ------------------------------
+    //  SAVE EDIT PROFILE
+    // ------------------------------
+    if (editProfileForm) {
+        editProfileForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+
+            const formData = new FormData(editProfileForm);
+
+            const res = await fetch("/api/profile/", {
+                method: "POST",
+                headers: { "X-CSRFToken": getCSRF() },
+                body: formData,
+            });
+
+            const data = await res.json();
+
+            // Update avatar in navbar
+            if (data.avatar_upload_url) {
+                topRightAvatar.src = data.avatar_upload_url;
+            } else {
+                topRightAvatar.src = buildUrl(data.avatar_style, data.avatar_seed);
+            }
+
+            editProfileModal.classList.add("hidden");
+        });
+    }
+
 });

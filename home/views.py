@@ -14,6 +14,8 @@ import json
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from .models import Profile
+from django.views.decorators.http import require_http_methods
+from django.contrib.auth.decorators import login_required
 
 from .forms import SignUpForm, PinForm
 from .models import Pin, PinPhoto, Friendship, Reaction
@@ -656,3 +658,86 @@ def edit_profile(request):
     profile.save()
 
     return JsonResponse({"success": True})
+
+
+
+
+
+@login_required
+@require_http_methods(["GET", "POST"])
+def profile_api(request):
+    # Get or create profile (important for older accounts)
+    profile, _ = Profile.objects.get_or_create(
+        user=request.user,
+        defaults={
+            "avatar_seed": request.user.username or "",
+            "avatar_style": "pixel-art",
+        },
+    )
+
+    if request.method == "GET":
+        return JsonResponse({
+            "full_name": profile.full_name or "",
+            "favorite_country": profile.favorite_country or "",
+            "bio": profile.bio or "",
+            "avatar_style": profile.avatar_style or "pixel-art",
+            "avatar_seed": profile.avatar_seed or request.user.username,
+        })
+
+    # POST — update profile
+    profile.full_name = request.POST.get("full_name", "").strip()
+    profile.favorite_country = request.POST.get("favorite_country", "").strip()
+    profile.bio = request.POST.get("bio", "").strip()
+
+    avatar_mode = request.POST.get("avatar_mode", "generated")
+
+    # --- Generated Avatar Mode ---
+    if avatar_mode == "generated":
+        profile.avatar_upload = None  # remove uploaded image
+
+        avatar_style = request.POST.get("avatar_style", "pixel-art").strip()
+        avatar_seed = request.POST.get("avatar_seed", "").strip()
+
+        VALID_AVATAR_STYLES = ["pixel-art", "bottts", "identicon"]
+        if avatar_style not in VALID_AVATAR_STYLES:
+            avatar_style = "pixel-art"
+
+        profile.avatar_style = avatar_style
+        if avatar_seed:
+            profile.avatar_seed = avatar_seed
+
+    # --- Upload Mode ---
+    elif avatar_mode == "upload":
+        if "avatar_upload" in request.FILES:
+            profile.avatar_upload = request.FILES["avatar_upload"]
+
+    profile.save()
+
+    return JsonResponse({
+        "success": True,
+        "full_name": profile.full_name,
+        "favorite_country": profile.favorite_country,
+        "bio": profile.bio,
+        "avatar_style": profile.avatar_style,
+        "avatar_seed": profile.avatar_seed,
+        "avatar_upload": profile.avatar_upload.url if profile.avatar_upload else None,
+    })
+
+@login_required
+@require_http_methods(["POST"])
+def edit_profile(request):
+    profile = request.user.profile
+
+    # Only update the fields that actually exist in Profile
+    bio = request.POST.get("bio")
+    if bio is not None:
+        profile.bio = bio
+
+    username = request.POST.get("username")
+    if username is not None:
+        request.user.username = username
+        request.user.save()
+
+    profile.save()
+
+    return JsonResponse({"status": "ok"})
