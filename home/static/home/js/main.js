@@ -348,15 +348,33 @@ renderer.domElement.addEventListener("click", () => {
 // PIN DETAILS MODAL
 // ===============================
 
-function openPinDetails(data) {
+async function openPinDetails(data) {
   const modal = document.getElementById("pinDetailsModal");
 
-  const allImages = [];
-  if (data.imageUrl) {
-    allImages.push(data.imageUrl);
+  // ✅ Always pull the freshest pin payload from the backend
+  let fresh = data;
+  try {
+    const res = await fetch(`/api/pin/${data.id}/`, {
+      credentials: "same-origin",
+    });
+    if (res.ok) {
+      const serverData = await res.json();
+      // Merge so we keep any local fields (like isOwner) but prefer server
+      fresh = { ...data, ...serverData };
+    }
+  } catch (err) {
+    console.warn("Could not refresh pin details:", err);
   }
-  if (Array.isArray(data.photos)) {
-    data.photos.forEach((item) => {
+
+  // From here down, use the refreshed payload
+  const d = fresh;
+
+  const allImages = [];
+  if (d.imageUrl) {
+    allImages.push(d.imageUrl);
+  }
+  if (Array.isArray(d.photos)) {
+    d.photos.forEach((item) => {
       let url = null;
       if (typeof item === "string") {
         url = item;
@@ -371,15 +389,15 @@ function openPinDetails(data) {
   const thumbsRow = document.getElementById("detailThumbnails");
 
   document.getElementById("detailCaption").textContent =
-    data.caption || "No caption";
+    d.caption || "No caption";
 
-  document.getElementById("detailUser").textContent = data.user
-    ? `@${data.user}`
+  document.getElementById("detailUser").textContent = d.user
+    ? `@${d.user}`
     : "@unknown";
 
-  const city = data.city || "";
-  const state = data.state || "";
-  const country = data.country || "";
+  const city = d.city || "";
+  const state = d.state || "";
+  const country = d.country || "";
 
   let prettyLocation = "";
   if (city && state && country) {
@@ -435,22 +453,24 @@ function openPinDetails(data) {
     });
   }
 
-  modal.dataset.pinId = data.id;
+  // Use refreshed ID + ownership info
+  modal.dataset.pinId = d.id;
 
   const ownerActions = document.getElementById("ownerActions");
   const editBtn = document.getElementById("editPinButton");
 
   if (ownerActions && editBtn) {
-    if (data.isOwner) {
+    if (d.isOwner) {
       ownerActions.style.display = "flex";
-      editBtn.dataset.editPinId = data.id;
+      editBtn.dataset.editPinId = d.id;
     } else {
       ownerActions.style.display = "none";
       editBtn.dataset.editPinId = "";
     }
   }
 
-  loadReactions(data.id);
+  // Load reactions for this refreshed pin id
+  loadReactions(d.id);
 
   modal.classList.remove("hidden");
   modal.classList.add("show");
@@ -462,26 +482,72 @@ async function loadReactions(pinId) {
       credentials: "same-origin",
     });
     if (!res.ok) return;
+
     const data = await res.json();
 
-    const countsDiv = document.getElementById("reactionCounts");
-    if (!countsDiv) return;
+    const trigger = document.getElementById("reactionTrigger");
+    const compact = document.getElementById("reactionCompact");
+    const compactIcons = document.getElementById("reactionCompactIcons");
+    const totalEl = document.getElementById("reactionTotalCount");
 
-    countsDiv.innerHTML = "";
+    const userReactionEl = document.getElementById("userReaction");
+    const summaryEl = document.getElementById("reactionSummary");
+
+    if (
+      !trigger ||
+      !compact ||
+      !compactIcons ||
+      !totalEl ||
+      !userReactionEl ||
+      !summaryEl
+    ) {
+      return;
+    }
+
     const icons = { like: "👍", love: "❤️", laugh: "😂", wow: "😮" };
+    const counts = data.reaction_counts || {};
 
-    if (data.reaction_counts) {
-      for (const [emoji, count] of Object.entries(data.reaction_counts)) {
-        countsDiv.innerHTML += `<span>${icons[emoji] || ""} ${count}</span>`;
-      }
+    const like = counts.like || 0;
+    const love = counts.love || 0;
+    const laugh = counts.laugh || 0;
+    const wow = counts.wow || 0;
+
+    const total = like + love + laugh + wow;
+
+    // Update user's personal reaction label/icon
+    if (data.user_reaction && icons[data.user_reaction]) {
+      userReactionEl.textContent = icons[data.user_reaction];
+      summaryEl.textContent = "Reacted";
+    } else {
+      userReactionEl.textContent = "👍";
+      summaryEl.textContent = "React";
     }
 
-    if (data.user_reaction) {
-      document.querySelectorAll(".react-btn").forEach((btn) => {
-        btn.style.opacity =
-          btn.dataset.emoji === data.user_reaction ? "1" : "0.4";
-      });
+    // If no reactions yet => show pill, hide compact
+    if (total === 0) {
+      trigger.classList.remove("hidden");
+      compact.classList.add("hidden");
+      compactIcons.innerHTML = "";
+      totalEl.textContent = "";
+      return;
     }
+
+    // If reactions exist => hide pill, show compact
+    trigger.classList.add("hidden");
+    compact.classList.remove("hidden");
+
+    // Build compact emoji stack in a nice order
+    const stack = [];
+    if (like > 0) stack.push("like");
+    if (love > 0) stack.push("love");
+    if (laugh > 0) stack.push("laugh");
+    if (wow > 0) stack.push("wow");
+
+    compactIcons.innerHTML = stack
+      .map((k) => `<span title="${k}">${icons[k]}</span>`)
+      .join("");
+
+    totalEl.textContent = `${total}`;
   } catch (err) {
     console.error("Failed to load reactions", err);
   }
@@ -837,80 +903,129 @@ window.showPins = showPins;
 // ===============================
 // FACEBOOK-STYLE REACTION POPUP
 // ===============================
-const reactionTrigger = document.getElementById("reactionTrigger");
-const reactionPopup = document.getElementById("reactionPopup");
-const userReaction = document.getElementById("userReaction");
-const reactionSummary = document.getElementById("reactionSummary");
-
-let popupVisible = false;
-
-function showReactionPopup() {
-  const rect = reactionTrigger.getBoundingClientRect();
-  reactionPopup.style.left = `${rect.left + rect.width / 2 - 80}px`;
-  reactionPopup.style.top = `${rect.top - 60}px`;
-
-  reactionPopup.style.opacity = "1";
-  reactionPopup.style.pointerEvents = "auto";
-  popupVisible = true;
-}
-
-function hideReactionPopup() {
-  reactionPopup.style.opacity = "0";
-  reactionPopup.style.pointerEvents = "none";
-  popupVisible = false;
-}
 
 document.addEventListener("DOMContentLoaded", () => {
+  const reactionTrigger = document.getElementById("reactionTrigger");
+  const reactionCompact = document.getElementById("reactionCompact");
+  const reactionPopup = document.getElementById("reactionPopup");
+  const userReaction = document.getElementById("userReaction");
+  const reactionSummary = document.getElementById("reactionSummary");
+
+  if (!reactionTrigger || !reactionPopup) return;
+
+  function showReactionPopup() {
+    // If compact is visible, anchor to it; otherwise anchor to trigger
+    const anchor =
+      reactionCompact && !reactionCompact.classList.contains("hidden")
+        ? reactionCompact
+        : reactionTrigger;
+
+    const rect = anchor.getBoundingClientRect();
+
+    // Use real popup width if possible (fallback to 160)
+    const popupWidth = reactionPopup.offsetWidth || 160;
+
+    // ✅ If compact is visible, center the popup in the modal
+    if (reactionCompact && !reactionCompact.classList.contains("hidden")) {
+      const modal = document.getElementById("pinDetailsModal");
+      if (modal) {
+        const mrect = modal.getBoundingClientRect();
+        reactionPopup.style.left = `${
+          mrect.left + mrect.width / 2 - popupWidth / 2
+        }px`;
+      } else {
+        // fallback to anchor centering
+        reactionPopup.style.left = `${
+          rect.left + rect.width / 2 - popupWidth / 2
+        }px`;
+      }
+    } else {
+      // ✅ default behavior for the pill state
+      reactionPopup.style.left = `${
+        rect.left + rect.width / 2 - popupWidth / 2
+      }px`;
+    }
+
+    // Keep vertical position based on the anchor so it feels connected
+    reactionPopup.style.top = `${rect.top - 60}px`;
+
+    reactionPopup.style.opacity = "1";
+    reactionPopup.style.pointerEvents = "auto";
+  }
+
+  function hideReactionPopup() {
+    reactionPopup.style.opacity = "0";
+    reactionPopup.style.pointerEvents = "none";
+  }
+
+  reactionTrigger.addEventListener("mouseenter", showReactionPopup);
+  reactionTrigger.addEventListener("mouseleave", () => {
+    setTimeout(() => {
+      if (!reactionPopup.matches(":hover")) hideReactionPopup();
+    }, 150);
+  });
+
+  if (reactionCompact) {
+    reactionCompact.addEventListener("mouseenter", showReactionPopup);
+    reactionCompact.addEventListener("mouseleave", () => {
+      setTimeout(() => {
+        if (!reactionPopup.matches(":hover")) hideReactionPopup();
+      }, 150);
+    });
+  }
+
+  reactionPopup.addEventListener("mouseleave", hideReactionPopup);
+
+  // Emoji clicks
+  document.querySelectorAll(".popup-react").forEach((emoji) => {
+    emoji.addEventListener("mouseenter", () => {
+      emoji.style.transform = "scale(1.3)";
+      emoji.style.transition = "0.15s ease";
+    });
+    emoji.addEventListener("mouseleave", () => {
+      emoji.style.transform = "scale(1.0)";
+    });
+
+    emoji.addEventListener("click", async () => {
+      const emojiType = emoji.dataset.emoji;
+      const pinId =
+        document.getElementById("pinDetailsModal")?.dataset?.pinId;
+
+      if (!pinId) return;
+
+      if (userReaction) userReaction.textContent = emoji.textContent;
+      if (reactionSummary) reactionSummary.textContent = "Reacted";
+
+      hideReactionPopup();
+
+      const res = await fetch(`/api/react/${pinId}/`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRFToken": document.querySelector(
+            "[name=csrfmiddlewaretoken]"
+          )?.value,
+        },
+        body: JSON.stringify({ emoji: emojiType }),
+      });
+
+      if (res.ok && typeof loadReactions === "function") {
+        loadReactions(pinId);
+      }
+    });
+  });
+
+  // Close details modal cleanup
   const detailsModal = document.getElementById("pinDetailsModal");
   const closeDetailsBtn = document.getElementById("closePinDetails");
 
-  if (!detailsModal || !closeDetailsBtn) return;
-
-  closeDetailsBtn.addEventListener("click", () => {
-    detailsModal.classList.remove("show");
-    detailsModal.classList.add("hidden");
-    if (typeof hideReactionPopup === "function") hideReactionPopup();
-  });
-});
-
-reactionTrigger.addEventListener("mouseenter", showReactionPopup);
-reactionTrigger.addEventListener("mouseleave", () => {
-  setTimeout(() => {
-    if (!reactionPopup.matches(":hover")) hideReactionPopup();
-  }, 150);
-});
-
-reactionPopup.addEventListener("mouseleave", hideReactionPopup);
-
-document.querySelectorAll(".popup-react").forEach((emoji) => {
-  emoji.addEventListener("mouseenter", () => {
-    emoji.style.transform = "scale(1.3)";
-    emoji.style.transition = "0.15s ease";
-  });
-  emoji.addEventListener("mouseleave", () => {
-    emoji.style.transform = "scale(1.0)";
-  });
-
-  emoji.addEventListener("click", async () => {
-    const emojiType = emoji.dataset.emoji;
-    const pinId = document.getElementById("pinDetailsModal").dataset.pinId;
-
-    userReaction.textContent = emoji.textContent;
-    reactionSummary.textContent = "Reacted";
-
-    hideReactionPopup();
-
-    const res = await fetch(`/api/react/${pinId}/`, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")?.value,
-      },
-      body: JSON.stringify({ emoji: emojiType }),
+  if (detailsModal && closeDetailsBtn) {
+    closeDetailsBtn.addEventListener("click", () => {
+      detailsModal.classList.remove("show");
+      detailsModal.classList.add("hidden");
+      hideReactionPopup();
     });
-
-    if (res.ok) loadReactions(pinId);
-  });
+  }
 });
 
 // Smooth transition when going to Gallery

@@ -1,5 +1,12 @@
 .DS_Store
+# Django / local dev DB
 db.sqlite3
+*.sqlite3
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 media/
-media/
+# venv
+venv/
+.venv/
