@@ -11,6 +11,9 @@ from django.db.models import Q, Count
 from datetime import datetime
 import requests
 import json
+from django.http import JsonResponse
+from django.views.decorators.csrf import csrf_exempt
+from .models import Profile
 
 from .forms import SignUpForm, PinForm
 from .models import Pin, PinPhoto, Friendship, Reaction
@@ -623,3 +626,33 @@ def popularity_dashboard(request):
         "chart_data": json.dumps(chart_data),
     }
     return render(request, "admin/popularity_dashboard.html", context)
+
+
+@login_required
+@csrf_exempt
+def edit_profile(request):
+    if request.method != "POST":
+        return JsonResponse({"error": "POST required"}, status=400)
+
+    user = request.user
+
+    # Safely get or create profile
+    profile, created = Profile.objects.get_or_create(user=user)
+
+    username = request.POST.get("username")
+    bio = request.POST.get("bio")
+    avatar = request.FILES.get("avatar")
+
+    if username:
+        user.username = username
+        user.save()
+
+    if bio is not None:
+        profile.bio = bio
+
+    if avatar:
+        profile.avatar = avatar
+
+    profile.save()
+
+    return JsonResponse({"success": True})

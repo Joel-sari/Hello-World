@@ -166,7 +166,7 @@
     overflow: hidden;
     border: 2px solid rgba(45, 212, 191, 0.95);
     box-shadow: 0 8px 20px rgba(15, 23, 42, 0.35);
-    background: radial-gradient(circle at 30% 0%, #22c1c3, #0f766e);
+    background: none;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -180,6 +180,7 @@
     height: 100%;
     object-fit: cover;
     display: block;
+    object-position: center;
   }
 
   .profile-avatar--fallback .profile-avatar-initial {
@@ -192,6 +193,7 @@
 
   .profile-dropdown {
     position: absolute;
+    top: 60px;
     right: 0;
     margin-top: 10px;
     min-width: 160px;
