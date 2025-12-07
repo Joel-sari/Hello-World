@@ -1048,34 +1048,58 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==========================
-// VIEW MY OWN PINS BUTTON
+// VIEW FRIENDS PINS <-> MY PINS TOGGLE
 // ==========================
-const myPinsButton = document.getElementById("viewMyPinsBtn");
+const pinsToggleBtn = document.getElementById("viewMyPinsBtn");
 
-if (myPinsButton) {
-  myPinsButton.addEventListener("click", async () => {
+// 🔁 IMPORTANT: this URL must match whatever you added in urls.py
+// If your route name is different, change this string to your real path.
+const FRIENDS_PINS_URL = "/api/friends-pins/";
+const MY_PINS_URL = "/api/my-pins/";
+
+// We want the button to START as "View Friends Pins"
+let currentMode = "friends"; 
+// Meaning: first click loads friends pins,
+// then it flips to "my" for the next click.
+
+async function loadPinsForMode(mode) {
+  const url = mode === "friends" ? FRIENDS_PINS_URL : MY_PINS_URL;
+
+  const res = await fetch(url, { credentials: "same-origin" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const data = await res.json();
+
+  if (window.showPins) {
+    showPins(data.pins || []);
+  }
+
+  if ((data.pins || []).length > 0 && window.moveCameraTo) {
+    const p = data.pins[0];
+    moveCameraTo(p.lat, p.lon);
+  }
+}
+
+if (pinsToggleBtn) {
+  // Set initial label
+  pinsToggleBtn.textContent = "View Friends Pins";
+
+  pinsToggleBtn.addEventListener("click", async () => {
     try {
-      const res = await fetch("/api/my-pins/", {
-        credentials: "same-origin",
-      });
+      // Load based on current mode
+      await loadPinsForMode(currentMode);
 
-      const data = await res.json();
-
-      // Show your pins
-      if (window.showPins) {
-        showPins(data.pins);
+      // Flip mode + update label for NEXT click
+      if (currentMode === "friends") {
+        currentMode = "my";
+        pinsToggleBtn.textContent = "My Pins";
+      } else {
+        currentMode = "friends";
+        pinsToggleBtn.textContent = "View Friends Pins";
       }
-
-      // Move camera to first pin (optional)
-      if (data.pins.length > 0 && window.moveCameraTo) {
-        const p = data.pins[0];
-        moveCameraTo(p.lat, p.lon);
-      }
-
     } catch (err) {
-      console.error("Error loading YOUR pins:", err);
+      console.error("Error loading pins:", err);
     }
   });
 }
-
 
