@@ -168,7 +168,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const formData = new FormData(editForm);
 
-      const res = await fetch("/edit-profile/", {
+      const res = await fetch("/api/edit-profile/", {
         method: "POST",
         headers: {
           "X-CSRFToken": document.querySelector("[name=csrfmiddlewaretoken]")

@@ -32,6 +32,22 @@ if (closeFriendsBtn) {
     friendsModal.classList.remove("show");
   });
 }
+// ===============================
+// Lightweight Friend Count Loader
+// (Used for the profile dropdown pill)
+// ===============================
+async function loadFriendCountOnly() {
+  try {
+    const res = await fetch("/api/friends/", { credentials: "same-origin" });
+    const data = await res.json();
+
+    // Only update the pill + modal count text
+    renderFriendSummary(data.friend_count);
+
+  } catch (err) {
+    console.error("Error loading friend count:", err);
+  }
+}
 
 
 // ===============================
@@ -344,3 +360,11 @@ function getCSRF() {
   const cookie = document.cookie.split("; ").find(r => r.startsWith("csrftoken="));
   return cookie ? cookie.split("=")[1] : "";
 }
+
+
+// Load friend count immediately on page load
+document.addEventListener("DOMContentLoaded", () => {
+  if (friendCountPill) {
+    loadFriendCountOnly();
+  }
+});

@@ -348,15 +348,33 @@ renderer.domElement.addEventListener("click", () => {
 // PIN DETAILS MODAL
 // ===============================
 
-function openPinDetails(data) {
+async function openPinDetails(data) {
   const modal = document.getElementById("pinDetailsModal");
 
-  const allImages = [];
-  if (data.imageUrl) {
-    allImages.push(data.imageUrl);
+  // ✅ Always pull the freshest pin payload from the backend
+  let fresh = data;
+  try {
+    const res = await fetch(`/api/pin/${data.id}/`, {
+      credentials: "same-origin",
+    });
+    if (res.ok) {
+      const serverData = await res.json();
+      // Merge so we keep any local fields (like isOwner) but prefer server
+      fresh = { ...data, ...serverData };
+    }
+  } catch (err) {
+    console.warn("Could not refresh pin details:", err);
   }
-  if (Array.isArray(data.photos)) {
-    data.photos.forEach((item) => {
+
+  // From here down, use the refreshed payload
+  const d = fresh;
+
+  const allImages = [];
+  if (d.imageUrl) {
+    allImages.push(d.imageUrl);
+  }
+  if (Array.isArray(d.photos)) {
+    d.photos.forEach((item) => {
       let url = null;
       if (typeof item === "string") {
         url = item;
@@ -371,15 +389,15 @@ function openPinDetails(data) {
   const thumbsRow = document.getElementById("detailThumbnails");
 
   document.getElementById("detailCaption").textContent =
-    data.caption || "No caption";
+    d.caption || "No caption";
 
-  document.getElementById("detailUser").textContent = data.user
-    ? `@${data.user}`
+  document.getElementById("detailUser").textContent = d.user
+    ? `@${d.user}`
     : "@unknown";
 
-  const city = data.city || "";
-  const state = data.state || "";
-  const country = data.country || "";
+  const city = d.city || "";
+  const state = d.state || "";
+  const country = d.country || "";
 
   let prettyLocation = "";
   if (city && state && country) {
@@ -435,22 +453,24 @@ function openPinDetails(data) {
     });
   }
 
-  modal.dataset.pinId = data.id;
+  // Use refreshed ID + ownership info
+  modal.dataset.pinId = d.id;
 
   const ownerActions = document.getElementById("ownerActions");
   const editBtn = document.getElementById("editPinButton");
 
   if (ownerActions && editBtn) {
-    if (data.isOwner) {
+    if (d.isOwner) {
       ownerActions.style.display = "flex";
-      editBtn.dataset.editPinId = data.id;
+      editBtn.dataset.editPinId = d.id;
     } else {
       ownerActions.style.display = "none";
       editBtn.dataset.editPinId = "";
     }
   }
 
-  loadReactions(data.id);
+  // Load reactions for this refreshed pin id
+  loadReactions(d.id);
 
   modal.classList.remove("hidden");
   modal.classList.add("show");

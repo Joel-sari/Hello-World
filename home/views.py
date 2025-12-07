@@ -456,6 +456,10 @@ def add_pin(request):
 
     print("===== END ADD PIN DEBUG =====\n")
 
+    # Ensuring that after add_pin is executed we receive the image on the front end
+    cover = request.build_absolute_uri(temp_pin.image.url) if temp_pin.image else None
+    extra = [request.build_absolute_uri(p.image.url) for p in temp_pin.photos.all()]
+
     # =============================================
     # SUCCESS RESPONSE
     # =============================================
@@ -465,11 +469,17 @@ def add_pin(request):
         "city": temp_pin.city,
         "state": temp_pin.state,
         "country": temp_pin.country,
-        "caption": temp_pin.caption,
+        "caption": temp_pin.caption or "",
         "lat": temp_pin.latitude,
         "lon": temp_pin.longitude,
-    })
 
+        # ✅ ADD THESE so the frontend can render immediately
+        "user": request.user.username,
+        "imageUrl": cover,
+        "photos": extra,          # list of strings is fine
+        "photoCount": (1 if cover else 0) + len(extra),
+        "isOwner": True,
+    })
 
 
 @login_required
