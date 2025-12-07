@@ -1,5 +1,8 @@
 {% extends 'home/base.html' %}
 {% load static %}
+{% block extra_css %}
+<link rel="stylesheet" href="{% static 'home/css/map.css' %}">
+{% endblock %}
 
 {% block body_class %}mode-map{% endblock %}
 
@@ -81,80 +84,6 @@
 {% include "home/ui_components/edit_pin.html" %}
 {% include "home/ui_components/friends.html" %}
 
-<style>
-  .modal {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.5);
-    justify-content: center;
-    align-items: center;
-  }
-
-  .modal.show { display: flex; }
-
-  .modal-content {
-    background: white;
-    padding: 20px;
-    border-radius: 10px;
-    width: 300px;
-  }
-
-  /* 🌍 TOP TOOLBAR STYLE */
-  .map-toolbar {
-    position: absolute;
-    top: 24px;
-    left: 24px;
-    display: flex;
-    align-items: center;
-    gap: 16px;
-    padding: 10px 18px;
-    border-radius: 9999px;
-    background: radial-gradient(circle at top left, rgba(45,212,191,0.92), rgba(15,118,110,0.96));
-    box-shadow: 0 18px 45px rgba(0,0,0,0.35);
-    backdrop-filter: blur(14px);
-    -webkit-backdrop-filter: blur(14px);
-    color: #ecfeff;
-    font-family: system-ui, sans-serif;
-    z-index: 20;
-  }
-
-  .search-container {
-    display: flex; align-items: center; gap: 8px;
-    padding: 6px 10px; border-radius: 9999px;
-    background: rgba(15,23,42,0.18);
-  }
-
-  #country-input {
-    border: none; outline: none; background: transparent;
-    color: #414949ff;
-    font-size: 13px;
-    min-width: 180px;
-  }
-
-  .profile-menu {
-    position: absolute; top: 24px; right: 24px; z-index: 24;
-    font-family: system-ui, sans-serif;
-  }
-
-  .profile-avatar {
-    width: 52px; height: 52px; border-radius: 9999px;
-    border: 2px solid rgba(45,212,191,0.95);
-    background: radial-gradient(circle at 30% 0%, #22c1c3, #0f766e);
-    display:flex; align-items:center; justify-content:center;
-    overflow:hidden; box-shadow:0 8px 20px rgba(0,0,0,0.35);
-  }
-
-  .profile-dropdown {
-    position: absolute; right: 0; margin-top: 10px;
-    background: rgba(15,23,42,0.96); border-radius: 14px;
-    min-width: 160px; padding: 10px 0; display:none;
-    backdrop-filter: blur(18px);
-  }
-
-  .profile-dropdown.open { display: block; }
-</style>
-
 {% endblock %}
 
 {% block scripts %}
@@ -182,8 +111,6 @@ document.addEventListener("DOMContentLoaded", () => {
   if (!trigger) { console.log("ERROR: trigger NOT FOUND"); return; }
   if (!dropdown) { console.log("ERROR: dropdown NOT FOUND"); return; }
 
-  // Visual debug aid
-  trigger.style.outline = "2px solid red";
 
   // Log clickable area
   const rect = trigger.getBoundingClientRect();
