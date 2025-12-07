@@ -105,21 +105,21 @@
   color: #e2e8f0;
 }
 
-.modal input[type="text"],
-.modal input[type="file"] {
+/* 🔧 Modal inputs: make them fit nicely inside the card */
+.modal .modal-content input[type="text"],
+.modal .modal-content input[type="file"] {
+  box-sizing: border-box;       /* width includes padding + border */
   width: 100%;
-  min-height: 44px;
+  max-width: 100%;
 
-  padding: 10px 14px;
+  min-height: 40px;             /* slightly shorter if you want */
+  padding: 8px 12px;            /* tighten padding a bit */
   border-radius: 12px;
-
   border: 1px solid rgba(148, 163, 184, 0.4);
   background: rgba(15, 23, 42, 0.9);
   color: #e5e7eb;
-
   outline: none;
 }
-
 .modal input[type="text"]::placeholder {
   color: rgba(148, 163, 184, 0.75);
 }
@@ -297,3 +297,26 @@
 
 
 
+/* ===============================
+   Modal Title + Subtitle Styling
+   =============================== */
+
+/* Main title — larger, bolder, more premium */
+.form-title {
+    font-size: 1.7rem;        /* bigger title */
+    font-weight: 700;         /* strong emphasis */
+    color: #f8fafc;           /* bright white/blue tint */
+    letter-spacing: 0.4px;    /* subtle premium spacing */
+    margin-bottom: 6px;       /* space under title */
+    line-height: 1.2;
+}
+
+/* Subtitle — smaller, softer, cleaner */
+.form-subtitle {
+    font-size: 1rem;
+    font-weight: 400;
+    color: #cbd5e1;
+    opacity: 0.85;
+    line-height: 1.4;
+    margin-bottom: 22px;      /* creates better spacing before first input */
+}
