@@ -39,10 +39,16 @@
     <button id="profile-trigger" class="profile-trigger" type="button">
     <div class="profile-avatar">
         <img
-            src="{% if user.profile.avatar %}{{ user.profile.avatar.url }}{% else %}{% static 'home/img/default-avatar.png' %}{% endif %}"
+            id="profile-avatar-img"
+            {% if user.profile.avatar_upload %}
+                src="{{ user.profile.avatar_upload.url }}"
+            {% else %}
+                src="https://api.dicebear.com/9.x/{{ user.profile.avatar_style|default:'pixel-art' }}/svg?seed={{ user.profile.avatar_seed|default:user.username }}"
+            {% endif %}
             alt="{{ user.username }} avatar"
             onerror="this.style.display='none'; this.parentElement.classList.add('profile-avatar--fallback');"
         />
+
         <span class="profile-avatar-initial">{{ user.username|first|upper }}</span>
     </div>
     </button>
@@ -70,7 +76,7 @@
       </button>
 
       <!-- EDIT PROFILE -->
-        <button class="profile-dropdown-item" id="edit-profile-btn">
+        <button class="profile-dropdown-item" id="edit-profile-link">
           Edit Profile
         </button>
 
